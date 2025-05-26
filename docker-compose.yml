@@ -1,0 +1,120 @@
+version: "3.9"
+
+# -----------------------------------------------------------------------------
+#  The Podcaster – Local Podcast Automation Platform
+# -----------------------------------------------------------------------------
+# This compose file spins up every service required for end-to-end processing.
+# Most services are optional during early development and can be commented out
+# if you only want a subset of functionality.
+# -----------------------------------------------------------------------------
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # FastAPI backend – REST API & task dispatcher
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+    container_name: podcaster-backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./backend:/code
+      - ./data:/data  # audio/video artifacts
+    environment:
+      - DATABASE_URL=postgresql://podcaster:podcaster@db/podcaster
+      - CELERY_BROKER_URL=redis://broker:6379/0
+      - CELERY_RESULT_BACKEND=redis://broker:6379/1
+      - OLLAMA_URL=http://ollama:11434
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+      - broker
+
+  # ---------------------------------------------------------------------------
+  # Celery worker – background heavy-lifting (FFmpeg, Whisper, etc.)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./backend
+    container_name: podcaster-worker
+    command: ["celery", "-A", "app.workers.tasks", "worker", "--loglevel=info"]
+    volumes:
+      - ./backend:/code
+      - ./data:/data
+    environment:
+      - DATABASE_URL=postgresql://podcaster:podcaster@db/podcaster
+      - CELERY_BROKER_URL=redis://broker:6379/0
+      - CELERY_RESULT_BACKEND=redis://broker:6379/1
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - broker
+      - db
+
+  # ---------------------------------------------------------------------------
+  # Database – PostgreSQL 15
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: podcaster-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: podcaster
+      POSTGRES_USER: podcaster
+      POSTGRES_PASSWORD: podcaster
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ---------------------------------------------------------------------------
+  # Redis – broker & result backend
+  # ---------------------------------------------------------------------------
+  broker:
+    image: redis:7-alpine
+    container_name: podcaster-redis
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Ollama – local LLM server (CPU or GPU)
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: podcaster-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+  # ---------------------------------------------------------------------------
+  # n8n – workflow automation (optional, comment until Milestone 6)
+  # ---------------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: podcaster-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true   # <-- Change credentials in .env
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - db
+
+  # ---------------------------------------------------------------------------
+  # Front-end – placeholder Nginx serving AudioMass static build
+  # ---------------------------------------------------------------------------
+  frontend:
+    image: nginx:1.25-alpine
+    container_name: podcaster-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:
+  ollama_models:
+  n8n_data:
