@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Podcaster</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header><h1>The Podcaster</h1></header>
+    <nav>
+        <button onclick="showView('uploadView')">Upload Audio</button>
+        <button onclick="showView('jobsView')">View Jobs</button>
+        <button onclick="showView('libraryView')">Media Library</button>
+    </nav>
+    <main>
+        <div id="uploadView" class="view">
+            <h2>Upload Audio Files</h2>
+            <form id="uploadForm">
+                <label for="mainTrack">Main Track:</label>
+                <input type="file" id="mainTrack" name="main_track" required><br><br>
+                <label for="introTrack">Intro Track (Optional):</label>
+                <input type="file" id="introTrack" name="intro"><br><br>
+                <label for="outroTrack">Outro Track (Optional):</label>
+                <input type="file" id="outroTrack" name="outro"><br><br>
+                <button type="submit">Upload & Process</button>
+            </form>
+            <div id="uploadResponse"></div>
+        </div>
+
+        <div id="jobsView" class="view" style="display:none;">
+            <h2>Current Jobs</h2>
+            <button onclick="fetchJobs()">Refresh Jobs</button>
+            <ul id="jobsList"></ul>
+        </div>
+
+        <div id="libraryView" class="view" style="display:none;">
+            <h2>Media Library (Processed Files)</h2>
+            <button onclick="fetchLibrary()">Refresh Library</button>
+            <ul id="libraryList"></ul>
+        </div>
+    </main>
+    <footer><p>&copy; 2024 The Podcaster</p></footer>
+    <script src="script.js"></script>
+</body>
+</html>

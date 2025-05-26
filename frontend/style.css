@@ -1,0 +1,37 @@
+body { font-family: sans-serif; margin: 0; background-color: #f4f4f4; color: #333; padding-bottom: 5em; /* Ensure footer doesn't overlap content */ }
+header { background-color: #333; color: white; padding: 1em 0; text-align: center; }
+nav { background-color: #444; padding: 0.5em; text-align: center; }
+nav button { background-color: #555; color: white; border: none; padding: 0.5em 1em; margin: 0 0.5em; cursor: pointer; border-radius: 3px; }
+nav button:hover { background-color: #666; }
+main { padding: 1em; max-width: 900px; margin: 0 auto; } /* Center content */
+.view { margin-bottom: 1em; padding: 1em; background-color: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+#jobsList li, #libraryList li { list-style-type: none; padding: 0.8em; border-bottom: 1px solid #eee; }
+#jobsList li:last-child, #libraryList li:last-child { border-bottom: none; }
+#jobsList li span, #libraryList li span { display: inline-block; min-width: 100px; font-weight: bold; }
+#jobsList li a, #libraryList li a { margin-left: 1em; text-decoration: none; color: #007bff; }
+#jobsList li a:hover, #libraryList li a:hover { text-decoration: underline; }
+
+footer { text-align: center; padding: 1em; background-color: #333; color: white; position: fixed; bottom: 0; width: 100%; }
+
+/* Form styling */
+#uploadForm label { display: inline-block; width: 150px; margin-bottom: 0.5em; }
+#uploadForm input[type="file"] { margin-bottom: 1em; }
+#uploadForm button[type="submit"] { background-color: #007bff; color: white; padding: 0.7em 1.5em; border: none; border-radius: 3px; cursor: pointer; }
+#uploadForm button[type="submit"]:hover { background-color: #0056b3; }
+#uploadResponse { margin-top: 1em; padding: 0.5em; border-radius: 3px; }
+#uploadResponse.success { background-color: #e6ffed; border: 1px solid #5cb85c; color: #3c763d; }
+#uploadResponse.error { background-color: #f2dede; border: 1px solid #d9534f; color: #a94442; }
+
+/* Button styling for refresh */
+#jobsView button, #libraryView button {
+    background-color: #5bc0de;
+    color: white;
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-bottom: 1em;
+}
+#jobsView button:hover, #libraryView button:hover {
+    background-color: #31b0d5;
+}
