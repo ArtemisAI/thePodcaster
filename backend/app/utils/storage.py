@@ -3,8 +3,18 @@
 import os
 from pathlib import Path
 
-# Base data directory (mounted to Docker /data)
-DATA_ROOT = Path(os.getenv("DATA_ROOT", "/data"))
+# Determine base data directory:
+# 1. Use DATA_ROOT env var if set.
+# 2. Else, if /data exists, assume Docker environment and use /data.
+# 3. Otherwise, use project_root/data (development environment).
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_ENV_DATA_ROOT = os.getenv("DATA_ROOT")
+if _ENV_DATA_ROOT:
+    DATA_ROOT = Path(_ENV_DATA_ROOT)
+elif Path("/data").exists():
+    DATA_ROOT = Path("/data")
+else:
+    DATA_ROOT = _PROJECT_ROOT / "data"
 
 # Directories for uploads, processed files, and transcripts
 UPLOAD_DIR = DATA_ROOT / "uploads"
