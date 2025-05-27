@@ -65,37 +65,80 @@ This frontend is served via Nginx and directly interacts with the backend API. I
 
 ---
 
-## Quick Start
+## Setup & Usage
 
+Follow these steps to set up and run The Podcaster locally.
+
+### Prerequisites
+
+- Docker (20.10+)
+- Docker Compose (1.29+)
+- (Optional) NVIDIA/AMD GPU for accelerated processing
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/thePodcaster.git
+   cd thePodcaster
+   ```
+2. Copy the example environment file and adjust if necessary:
+   ```bash
+   cp .env.example .env
+   ```
+3. (Optional) Pull an Ollama model for AI features:
+   ```bash
+   docker exec -it podcaster-ollama ollama pull llama2:7b-chat
+   ```
+
+### Launching Services
+
+Start all services:
 ```bash
-# 1. Ensure Docker and Docker Compose are installed.
-# 2. Clone the repository.
-# 3. Copy environment template and adjust secrets / paths if necessary (defaults are generally fine for local run)
-cp .env.example .env
+docker compose up -d
+``` 
 
-# 4. Launch the full stack (backend, worker, db, redis, ollama, n8n, frontend-nginx)
-docker compose up -d --build
+View service status:
+```bash
+docker compose ps
+``` 
 
-# 5. Pull an LLM model for Ollama (if not already present)
-# Example: docker exec -it podcaster-ollama ollama pull llama2:7b-chat
-# (The default model used by the backend is defined in .env or backend/app/config.py)
+Stop services:
+```bash
+docker compose down
+``` 
 
-# 6. Open the frontend UI
-# This is the simplified HTML frontend.
-open http://localhost:3000
+### Accessing the Application
 
-# 7. Access the backend API documentation
-# OpenAPI (Swagger): http://localhost:8000/api/docs
-# ReDoc: http://localhost:8000/api/redoc
+- Frontend UI: http://localhost:3005 (or the value of `FRONTEND_PORT` in `.env`)
+- Swagger UI: http://localhost:8000/api/docs
+- ReDoc: http://localhost:8000/api/redoc
+- Health check: http://localhost:8000/api/health
 
-# 8. Check backend health and key API groups
-# Health: curl http://localhost:8000/api/health
-# Audio API: http://localhost:8000/api/audio/ping (example, check /api/docs for full list)
-# Video API: http://localhost:8000/api/video/ (check /api/docs)
-# Transcription API: http://localhost:8000/api/transcription/ (check /api/docs)
-# LLM API: http://localhost:8000/api/llm/ (check /api/docs)
-# Publish API: http://localhost:8000/api/publish/ping (check /api/docs)
+### Web Interface Usage
+
+1. Open the Frontend UI in your browser.
+2. Upload your audio files (e.g., intro.mp3, main.mp3, outro.mp3).
+3. Click **Process** to start audio processing, video generation, and transcription.
+4. Monitor job status in the interface.
+5. Download results from the UI or find generated assets in `./data`.
+
+### API Examples
+
+Submit an audio processing job:
+```bash
+curl -X POST http://localhost:8000/api/audio/jobs \
+  -F "files=@intro.mp3" \
+  -F "files=@main.mp3" \
+  -F "files=@outro.mp3"
 ```
+
+Check job status:
+```bash
+curl http://localhost:8000/api/audio/jobs/YOUR_JOB_ID
+```
+
+Additional endpoints for video, transcription, LLM, and publishing workflows are available in the Swagger UI.
 
 ---
 

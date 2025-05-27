@@ -22,10 +22,10 @@ services:
       - ./backend:/code
       - ./data:/data  # audio/video artifacts
     environment:
-      - DATABASE_URL=postgresql://podcaster:podcaster@db/podcaster
-      - CELERY_BROKER_URL=redis://broker:6379/0
-      - CELERY_RESULT_BACKEND=redis://broker:6379/1
-      - OLLAMA_URL=http://ollama:11434
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - OLLAMA_URL=${OLLAMA_URL}
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
@@ -43,10 +43,10 @@ services:
       - ./backend:/code
       - ./data:/data
     environment:
-      - DATABASE_URL=postgresql://podcaster:podcaster@db/podcaster
-      - CELERY_BROKER_URL=redis://broker:6379/0
-      - CELERY_RESULT_BACKEND=redis://broker:6379/1
-      - OLLAMA_URL=http://ollama:11434
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - OLLAMA_URL=${OLLAMA_URL}
     depends_on:
       - broker
       - db
@@ -76,32 +76,32 @@ services:
   # ---------------------------------------------------------------------------
   # Ollama – local LLM server (CPU or GPU)
   # ---------------------------------------------------------------------------
-  ollama:
-    image: ollama/ollama:latest
-    container_name: podcaster-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
+ #  ollama:
+ #    image: ollama/ollama:latest
+ #    container_name: podcaster-ollama
+ #    restart: unless-stopped
+ #    ports:
+ #      - "11434:11434"
+ #    volumes:
+ #      - ollama_models:/root/.ollama
 
   # ---------------------------------------------------------------------------
   # n8n – workflow automation (optional, comment until Milestone 6)
   # ---------------------------------------------------------------------------
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: podcaster-n8n
-    restart: unless-stopped
-    ports:
-      - "5678:5678"
-    environment:
-      - N8N_BASIC_AUTH_ACTIVE=true   # <-- Change credentials in .env
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=admin
-    volumes:
-      - n8n_data:/home/node/.n8n
-    depends_on:
-      - db
+ #  n8n:
+ #    image: n8nio/n8n:latest
+ #    container_name: podcaster-n8n
+ #    restart: unless-stopped
+ #    ports:
+ #      - "5678:5678"
+ #    environment:
+ #      - N8N_BASIC_AUTH_ACTIVE=true   # <-- Change credentials in .env
+ #      - N8N_BASIC_AUTH_USER=admin
+ #      - N8N_BASIC_AUTH_PASSWORD=admin
+ #    volumes:
+ #      - n8n_data:/home/node/.n8n
+ #    depends_on:
+ #      - db
 
   # ---------------------------------------------------------------------------
   # Front-end – placeholder Nginx serving AudioMass static build
@@ -110,7 +110,7 @@ services:
     image: nginx:1.25-alpine
     container_name: podcaster-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT}:80"
     volumes:
       - ./frontend:/usr/share/nginx/html:ro # Serve directly from frontend/
 
