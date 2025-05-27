@@ -38,7 +38,7 @@ services:
     build:
       context: ./backend
     container_name: podcaster-worker
-    command: ["celery", "-A", "app.workers.tasks", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.workers.tasks:celery_app", "worker", "--loglevel=info"]
     volumes:
       - ./backend:/code
       - ./data:/data
@@ -112,7 +112,8 @@ services:
     ports:
       - "${FRONTEND_PORT}:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro # Serve directly from frontend/
+      - ./frontend:/usr/share/nginx/html:ro # Static front-end SPA
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Custom proxy & upload limits
 
 volumes:
   pgdata:

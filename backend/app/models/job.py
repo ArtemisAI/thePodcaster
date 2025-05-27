@@ -1,27 +1,45 @@
-"""Models for background processing jobs."""
-from enum import Enum
-from datetime import datetime
+"""SQLAlchemy model & helpers for processing jobs.
 
-class JobStatus(Enum):
+Only a subset of columns required by the current codebase is implemented.
+Feel free to extend once additional metadata or relations are needed.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Optional
+
+from sqlalchemy import Column, DateTime, Enum as SAEnum, Integer, String, Text
+
+from app.db.base import Base
+
+
+class JobStatus(str, Enum):
+    """Enum representing the lifecycle of a background processing job."""
+
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
-class ProcessingJob:
-    """Represents a processing job with status and result metadata."""
-    def __init__(
-        self,
-        id: int = None,
-        job_type: str = None,
-        status: JobStatus = None,
-        output_file_path: str = None,
-        error_message: str = None,
-        created_at: datetime = None,
-    ):
-        self.id = id
-        self.job_type = job_type
-        self.status = status
-        self.output_file_path = output_file_path
-        self.error_message = error_message
-        self.created_at = created_at or datetime.utcnow()
+
+class ProcessingJob(Base):
+    """Persistent representation of a background processing job."""
+
+    __tablename__ = "processing_jobs"
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    job_type: str = Column(String(50), nullable=False)
+    status: JobStatus = Column(SAEnum(JobStatus), nullable=False, default=JobStatus.PENDING)
+    output_file_path: Optional[str] = Column(String(255), nullable=True)
+    error_message: Optional[str] = Column(Text, nullable=True)
+    created_at: datetime = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    # Helper to convert enum to plain string for JSON responses
+    @property
+    def status_str(self) -> str:
+        return self.status.value if isinstance(self.status, JobStatus) else str(self.status)
+
+
+# The model is imported by Alembic / application start-up.  No run-time code here.

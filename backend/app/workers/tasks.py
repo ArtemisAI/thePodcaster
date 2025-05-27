@@ -8,8 +8,8 @@ import os
 import ffmpeg # For ffmpeg.Error in error handling
 
 # Import settings and services
-from ..config import settings
-from ..db.database import SessionLocal
+from app.config import settings
+from app.db.database import SessionLocal
 from ..models.job import ProcessingJob, JobStatus
 from ..services.audio_processing import merge_and_normalize_audio
 from ..services.transcription import transcribe_audio
@@ -18,6 +18,14 @@ from ..utils.storage import (
     ensure_dir_exists, DATA_ROOT, save_transcript_to_files
 )
 from ..logging_config import setup_logging as setup_app_logging
+
+# Ensure DB schema exists when the worker process starts.  This way we do not
+# depend on the FastAPI container running first (handy during local dev)
+from app.db.base import Base
+from app.db.database import engine
+
+# Creating tables is a no-op if they already exist (and very fast).
+Base.metadata.create_all(bind=engine)
 
 # --- Logger Setup ---
 # Ensure app-level logging is configured when a worker starts.

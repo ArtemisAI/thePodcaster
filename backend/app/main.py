@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+import logging
+
 from .logging_config import setup_logging
 from .api import routes_audio, routes_llm, routes_transcription, routes_publish
 from fastapi.middleware.cors import CORSMiddleware # Ensure CORSMiddleware is imported if used
@@ -88,6 +90,17 @@ def create_app() -> FastAPI:
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
 
+    # ------------------------------------------------------------------
+    # Ensure database schema exists (development convenience).
+    # ------------------------------------------------------------------
+    try:
+        from app.db.database import engine
+        from app.db.base import Base
+
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:  # pragma: no cover – startup safeguard
+        logging.getLogger(__name__).exception("Failed to create DB schema: %s", exc)
+
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:
@@ -99,6 +112,5 @@ def create_app() -> FastAPI:
 
 app = create_app()
 # Add a logger instance for use in this file if needed outside of handlers/routes
-import logging # Ensure logging is imported if not already at top
 logger = logging.getLogger(__name__)
 logger.info("FastAPI application created and configured.")
