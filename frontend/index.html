@@ -3,44 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Podcaster</title>
+    <title>The Podcaster - Create and Manage Your Audio Content</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header><h1>The Podcaster</h1></header>
-    <nav>
-        <button onclick="showView('uploadView')">Upload Audio</button>
-        <button onclick="showView('jobsView')">View Jobs</button>
-        <button onclick="showView('libraryView')">Media Library</button>
+    <header role="banner">
+        <h1>The Podcaster</h1>
+    </header>
+    <nav role="navigation" aria-label="Main navigation">
+        <button data-view="uploadView" aria-controls="uploadView">Upload Audio</button>
+        <button data-view="jobsView" aria-controls="jobsView">View Jobs</button>
+        <button data-view="libraryView" aria-controls="libraryView">Media Library</button>
     </nav>
-    <main>
-        <div id="uploadView" class="view">
-            <h2>Upload Audio Files</h2>
-            <form id="uploadForm">
-                <label for="mainTrack">Main Track:</label>
-                <input type="file" id="mainTrack" name="main_track" required><br><br>
-                <label for="introTrack">Intro Track (Optional):</label>
-                <input type="file" id="introTrack" name="intro"><br><br>
-                <label for="outroTrack">Outro Track (Optional):</label>
-                <input type="file" id="outroTrack" name="outro"><br><br>
-                <button type="submit">Upload & Process</button>
+    <main role="main">
+        <section id="uploadView" class="view" aria-labelledby="uploadViewHeading" style="display:none;" aria-hidden="true">
+            <h2 id="uploadViewHeading">Upload Audio Files</h2>
+            <form id="uploadForm" aria-describedby="uploadFormDescription">
+                <p id="uploadFormDescription" class="sr-only">Upload main, intro, and outro audio tracks for processing.</p>
+                <div>
+                    <label for="mainTrack">Main Track <span class="tooltip-trigger" data-tooltip="The primary audio content for your podcast episode. Required. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Main Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <input type="file" id="mainTrack" name="main_track" required aria-required="true" aria-describedby="mainTrackFeedback">
+                    <div id="mainTrackFeedback" class="validation-feedback" aria-live="polite"></div>
+                </div>
+                <div>
+                    <label for="introTrack">Intro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be prepended to your main track. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Intro Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <input type="file" id="introTrack" name="intro" aria-describedby="introTrackFeedback">
+                    <div id="introTrackFeedback" class="validation-feedback" aria-live="polite"></div>
+                </div>
+                <div>
+                    <label for="outroTrack">Outro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be appended to your main track. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Outro Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <input type="file" id="outroTrack" name="outro" aria-describedby="outroTrackFeedback">
+                    <div id="outroTrackFeedback" class="validation-feedback" aria-live="polite"></div>
+                </div>
+                <button type="submit" id="submitUpload">Upload & Process</button>
             </form>
-            <div id="uploadResponse"></div>
-        </div>
+            <div id="uploadResponse" style="display:none;" aria-live="polite"></div>
+        </section>
 
-        <div id="jobsView" class="view" style="display:none;">
-            <h2>Current Jobs</h2>
-            <button onclick="fetchJobs()">Refresh Jobs</button>
-            <ul id="jobsList"></ul>
-        </div>
+        <section id="jobsView" class="view" aria-labelledby="jobsViewHeading" style="display:none;" aria-hidden="true">
+            <h2 id="jobsViewHeading">Current Jobs</h2>
+            <div>
+                <label for="jobIdInput">Fetch Specific Job ID (Optional) <span class="tooltip-trigger" data-tooltip="Enter a Job ID to fetch its details. Leave empty to fetch all recent jobs." aria-label="Help for Job ID input"><span aria-hidden="true">&#❓</span></span></label>
+                <input type="text" id="jobIdInput" placeholder="Enter Job ID" aria-describedby="jobIdInputTooltip">
+                <span id="jobIdInputTooltip" class="sr-only">Enter a Job ID to fetch its details. Leave empty to fetch all recent jobs.</span> 
+            </div>
+            <button id="refreshJobsBtn" aria-describedby="jobsListStatus">Refresh Jobs</button>
+            <div id="jobsListStatus" class="sr-only" aria-live="polite">Job list will be updated.</div>
+            <ul id="jobsList" aria-live="polite">
+                <!-- Job items will be populated here by script.js -->
+            </ul>
+        </section>
 
-        <div id="libraryView" class="view" style="display:none;">
-            <h2>Media Library (Processed Files)</h2>
-            <button onclick="fetchLibrary()">Refresh Library</button>
-            <ul id="libraryList"></ul>
-        </div>
+        <section id="libraryView" class="view" aria-labelledby="libraryViewHeading" style="display:none;" aria-hidden="true">
+            <h2 id="libraryViewHeading">Media Library (Processed Files)</h2>
+            <button id="refreshLibraryBtn" aria-describedby="libraryListStatus">Refresh Library</button>
+            <div id="libraryListStatus" class="sr-only" aria-live="polite">Library list will be updated.</div>
+            <ul id="libraryList" aria-live="polite">
+                <!-- Library items will be populated here by script.js -->
+            </ul>
+        </section>
     </main>
-    <footer><p>&copy; 2024 The Podcaster</p></footer>
+    <footer role="contentinfo">
+        <p>&copy; 2024 The Podcaster</p>
+    </footer>
     <script src="script.js"></script>
+    <!-- Basic CSS for sr-only class -->
+    <style>
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
 </body>
 </html>

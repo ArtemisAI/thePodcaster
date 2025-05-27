@@ -12,6 +12,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from fastapi.responses import FileResponse
 from pathlib import Path
 import uuid
+import logging # Added for logging
 
 from ..utils.storage import UPLOAD_DIR, PROCESSED_DIR, DATA_ROOT, ensure_dir_exists
 from ..db.database import SessionLocal
@@ -19,15 +20,26 @@ from ..models.job import ProcessingJob, JobStatus
 from ..workers.tasks import process_audio_task
 
 router = APIRouter()
+logger = logging.getLogger(__name__) # Added logger instance
 
 async def save_uploaded_file(file: UploadFile, session_id: str) -> Path:
     """Save an uploaded file under a session-specific directory."""
     session_dir = UPLOAD_DIR / session_id
     ensure_dir_exists(session_dir)
     file_path = session_dir / file.filename
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+    
+    logger.info(f"Attempting to save file '{file.filename}' for session '{session_id}' to path '{file_path}'.")
+    try:
+        with open(file_path, "wb") as f:
+            while True:
+                chunk = await file.read(8192)  # Read file in 8KB chunks
+                if not chunk:
+                    break
+                f.write(chunk)
+        logger.info(f"Successfully saved file '{file.filename}' for session '{session_id}' to path '{file_path}'.")
+    except Exception as e:
+        logger.error(f"Error during saving file '{file.filename}' for session '{session_id}' at path '{file_path}': {e}", exc_info=True)
+        raise # Re-raise the exception to be caught by the caller
     return file_path
 
 @router.post("/upload")
@@ -39,16 +51,53 @@ async def upload_audio(
     """Upload one or more audio tracks. Main track is required."""
     session_id = str(uuid.uuid4())
     saved = {}
+    
+    main_filename = main_track.filename if main_track else "N/A"
+    intro_filename = intro.filename if intro else "None"
+    outro_filename = outro.filename if outro else "None"
+    logger.info(f"Received audio upload request for session '{session_id}'. Main: '{main_filename}', Intro: '{intro_filename}', Outro: '{outro_filename}'.")
+
     # Save main track
-    main_path = await save_uploaded_file(main_track, session_id)
-    saved["main_track"] = main_path
+    try:
+        logger.info(f"Attempting to save main_track: '{main_track.filename}' for session '{session_id}'.")
+        main_path = await save_uploaded_file(main_track, session_id)
+        saved["main_track"] = str(main_path.relative_to(DATA_ROOT))
+        logger.info(f"Successfully saved main_track: '{main_track.filename}' to '{saved['main_track']}' for session '{session_id}'.")
+    except Exception as e:
+        logger.error(f"Error saving file '{main_track.filename}' for session '{session_id}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error saving file: {main_track.filename}. Error: {str(e)}"
+        )
+
     # Optional tracks
     if intro:
-        intro_path = await save_uploaded_file(intro, session_id)
-        saved["intro"] = intro_path
+        try:
+            logger.info(f"Attempting to save intro: '{intro.filename}' for session '{session_id}'.")
+            intro_path = await save_uploaded_file(intro, session_id)
+            saved["intro"] = str(intro_path.relative_to(DATA_ROOT))
+            logger.info(f"Successfully saved intro: '{intro.filename}' to '{saved['intro']}' for session '{session_id}'.")
+        except Exception as e:
+            logger.error(f"Error saving file '{intro.filename}' for session '{session_id}': {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error saving file: {intro.filename}. Error: {str(e)}"
+            )
+            
     if outro:
-        outro_path = await save_uploaded_file(outro, session_id)
-        saved["outro"] = outro_path
+        try:
+            logger.info(f"Attempting to save outro: '{outro.filename}' for session '{session_id}'.")
+            outro_path = await save_uploaded_file(outro, session_id)
+            saved["outro"] = str(outro_path.relative_to(DATA_ROOT))
+            logger.info(f"Successfully saved outro: '{outro.filename}' to '{saved['outro']}' for session '{session_id}'.")
+        except Exception as e:
+            logger.error(f"Error saving file '{outro.filename}' for session '{session_id}': {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error saving file: {outro.filename}. Error: {str(e)}"
+            )
+            
+    logger.info(f"Completed audio upload processing for session '{session_id}'. Saved files: {list(saved.keys())}.")
     return {"upload_session_id": session_id, "saved_files": saved}
 
 @router.post("/process/{session_id}")
