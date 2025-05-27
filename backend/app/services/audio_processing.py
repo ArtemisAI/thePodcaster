@@ -110,4 +110,4 @@ def merge_and_normalize_audio(input_files: list[Path], output_path: Path) -> Pat
 
 # This requires settings to be importable. If it's not, remove the settings.FFMPEG_PATH part.
 # For this example, I'll assume `settings` can be imported.
-from backend.app.config import settings
+from ..config import settings

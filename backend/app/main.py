@@ -13,8 +13,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.app.logging_config import setup_logging # Import the logging setup function
-from backend.app.api import routes_audio, routes_llm, routes_transcription, routes_publish, routes_video
+from .logging_config import setup_logging
+from .api import routes_audio, routes_llm, routes_transcription, routes_publish
 from fastapi.middleware.cors import CORSMiddleware # Ensure CORSMiddleware is imported if used
 
 # Call logging setup at module level or early in create_app
@@ -87,7 +87,6 @@ def create_app() -> FastAPI:
     app.include_router(routes_llm.router, prefix="/api/llm", tags=["llm"])
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
-    app.include_router(routes_video.router, prefix="/api/video", tags=["video"])
 
 
     @app.get("/api/health")

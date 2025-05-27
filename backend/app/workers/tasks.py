@@ -8,17 +8,16 @@ import os
 import ffmpeg # For ffmpeg.Error in error handling
 
 # Import settings and services
-from backend.app.config import settings # Assuming settings are used for URLs
-from backend.app.db.database import SessionLocal, init_db # init_db might not be needed here if DB is always up
-from backend.app.models.job import ProcessingJob, JobStatus
-from backend.app.services.audio_processing import merge_and_normalize_audio
-from backend.app.services.video_processing import generate_waveform_video
-from backend.app.services.transcription import transcribe_audio
-from backend.app.utils.storage import (
-    UPLOAD_DIR, PROCESSED_DIR, TRANSCRIPT_DIR, 
+from ..config import settings
+from ..db.database import SessionLocal
+from ..models.job import ProcessingJob, JobStatus
+from ..services.audio_processing import merge_and_normalize_audio
+from ..services.transcription import transcribe_audio
+from ..utils.storage import (
+    UPLOAD_DIR, PROCESSED_DIR, TRANSCRIPT_DIR,
     ensure_dir_exists, DATA_ROOT, save_transcript_to_files
 )
-from backend.app.logging_config import setup_logging as setup_app_logging # App's logging setup
+from ..logging_config import setup_logging as setup_app_logging
 
 # --- Logger Setup ---
 # Ensure app-level logging is configured when a worker starts.
@@ -33,7 +32,7 @@ celery_app = Celery(
     "tasks",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=['backend.app.workers.tasks'] # Ensures tasks are discoverable
+    include=['app.workers.tasks'] # Ensures tasks are discoverable
 )
 
 celery_app.conf.update(

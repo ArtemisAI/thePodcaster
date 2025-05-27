@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Dict, List, Any # Ensure List and Any are imported
 
-from backend.app.config import settings # OLLAMA_URL and OLLAMA_DEFAULT_MODEL are here
+from ..config import settings
 
 # Get a logger for this module
 logger = logging.getLogger(__name__)
