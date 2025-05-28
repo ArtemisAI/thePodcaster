@@ -19,6 +19,11 @@ from .logging_config import setup_logging
 from .api import routes_audio, routes_llm, routes_transcription, routes_publish
 from fastapi.middleware.cors import CORSMiddleware # Ensure CORSMiddleware is imported if used
 
+# Required imports for startup event
+import os
+from pathlib import Path
+from app.utils.storage import DATA_ROOT, UPLOAD_DIR, PROCESSED_DIR, ensure_dir_exists
+
 # Call logging setup at module level or early in create_app
 setup_logging() 
 # Alternatively, call inside create_app() if preferred for certain testing scenarios,
@@ -37,6 +42,36 @@ def create_app() -> FastAPI:
     # setup_logging() # Alternative placement for logging setup
 
     app = FastAPI(title="The Podcaster API", version="0.1.0", docs_url="/api/docs")
+
+    # Get a logger instance for startup events
+    logger_startup = logging.getLogger(__name__)
+
+    # --- Startup Event Handler ---
+    @app.on_event("startup")
+    async def startup_event():
+        logger_startup.info("Application startup: Performing initial checks...")
+        
+        # Log resolved paths
+        logger_startup.info(f"Resolved DATA_ROOT: {DATA_ROOT.resolve()}")
+        logger_startup.info(f"Resolved UPLOAD_DIR: {UPLOAD_DIR.resolve()}")
+        logger_startup.info(f"Resolved PROCESSED_DIR: {PROCESSED_DIR.resolve()}")
+
+        # Ensure UPLOAD_DIR exists
+        try:
+            ensure_dir_exists(UPLOAD_DIR) # ensure_dir_exists is not async
+            logger_startup.info(f"Ensured UPLOAD_DIR exists at: {UPLOAD_DIR.resolve()}")
+        except Exception as e:
+            logger_startup.critical(f"Could not create UPLOAD_DIR at {UPLOAD_DIR.resolve()}: {e}", exc_info=True)
+            # Potentially raise an exception here to halt startup if essential.
+
+        # Check if UPLOAD_DIR is writable
+        upload_dir_path_str = str(UPLOAD_DIR.resolve())
+        if not os.access(upload_dir_path_str, os.W_OK):
+            logger_startup.critical(f"CRITICAL: UPLOAD_DIR '{upload_dir_path_str}' is NOT WRITABLE by the application. File uploads will fail. Check host directory permissions if using Docker volume mounts.")
+        else:
+            logger_startup.info(f"UPLOAD_DIR '{upload_dir_path_str}' is writable.")
+        
+        logger_startup.info("Startup checks completed.")
 
     # --- Exception Handlers ---
     @app.exception_handler(RequestValidationError)
@@ -112,5 +147,5 @@ def create_app() -> FastAPI:
 
 app = create_app()
 # Add a logger instance for use in this file if needed outside of handlers/routes
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__) # This was already here, the startup logger is local to create_app
 logger.info("FastAPI application created and configured.")
