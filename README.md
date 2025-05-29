@@ -50,7 +50,10 @@ The stack is designed to **run completely on a single workstation** while taking
 *   **LLM Integration:** Connect to a local Ollama instance to generate podcast titles and summaries from transcripts.
 *   **Publishing Automation:** Trigger n8n workflows via webhooks, sending job metadata (media paths, titles, summaries, transcripts) for automated distribution.
 *   **Job Management:** Track the status of all processing jobs (audio, video, transcription) using a PostgreSQL database.
-*   **Structured Logging & Error Handling:** Comprehensive logging across the backend and robust error handling in API and Celery tasks.
+    *   APIs for listing and deleting original uploaded files/sessions.
+    *   APIs for listing and deleting processed audio files (job outputs).
+*   **Flexible File & Output Management:** APIs for managing original uploaded audio files (list, download, delete), processed audio files (list, download, delete), and a separate generic 'outputs' directory with its own file management APIs.
+*   **Structured Logging & Error Handling:** Comprehensive logging across the backend and robust error handling in API and Celery tasks. Includes file-based logging to `backend/logs/app.log` and robust startup checks for directory integrity.
 *   **API Documentation:** Automatic OpenAPI (Swagger UI) and ReDoc documentation for all API endpoints.
 *   **Unit Tests:** Backend components (APIs, services) are covered by unit tests using Pytest.
 
@@ -138,30 +141,17 @@ docker compose down
 
 ### API Examples
 
-Submit an audio processing job:
-```bash
-curl -X POST http://localhost:8000/api/audio/jobs \
-  -F "files=@intro.mp3" \
-  -F "files=@main.mp3" \
-  -F "files=@outro.mp3"
-```
-
-Check job status:
-```bash
-curl http://localhost:8000/api/audio/jobs/YOUR_JOB_ID
-```
-
-Additional endpoints for video, transcription, LLM, and publishing workflows are available in the Swagger UI.
+For detailed API testing examples using `curl`, please refer to the [API Endpoint Testing Guide](./backend/tests/README.md).
 
 ---
 
 ## Development Roadmap
 
 The project was divided into 7 major milestones.
-*   **Milestones 1-6 (Backend Infrastructure & Features):** Substantially implemented, covering repository structure, CI, audio processing, video generation, transcription, LLM integration, and publishing hooks.
+*   Backend infrastructure and core features (Milestones 1-6, with expanded file management capabilities under Milestone 2) are substantially implemented. This covers repository structure, CI, audio processing, video generation, transcription, LLM integration, publishing hooks, and comprehensive file/output management APIs.
 *   **Milestone 7 (Frontend):** Addressed with a simplified manual HTML/CSS/JS UI due to environmental constraints with Node.js tooling during development. The core backend APIs are available for a more advanced frontend to be built in the future.
 
-Refer to `ROADMAP.md` for the original detailed task breakdown.
+Refer to `ROADMAP.md` for the original detailed task breakdown and the current status of each item.
 
 ---
 

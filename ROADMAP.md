@@ -22,10 +22,12 @@ Deliverable: `docker compose up` results in a running FastAPI container returnin
 
 | ID | Task | Est. | Notes |
 |----|------|------|-------|
-|B1|POST `/audio/upload` endpoint with multipart support|1d|Store to mounted volume|
+|B1|POST `/audio/upload` endpoint with multipart support|1d|Implemented. Files saved to session-specific dirs. APIs for listing sessions, files within sessions, downloading originals, and deleting sessions now exist.|
 |B2|Define Celery tasks for `merge_tracks`, `normalize_volume`, etc.|1d|FFmpeg wrapper|
-|B3|Persist job status in Postgres (SQLModel)|0.5d|`ProcessingJob` table|
-|B4|Send progress updates over WebSocket (FastAPI)|1d|Front-end subscribers|
+|B3|Persist job status in Postgres (SQLModel)|0.5d|Implemented. `ProcessingJob` model used. APIs for listing/deleting processed files (job outputs) exist.|
+|B4|Send progress updates over WebSocket (FastAPI)|1d|Deferred or Future Enhancement.|
+|B5|Enhanced File Management APIs|N/A|Implemented. Includes: listing upload sessions, files within sessions; downloading original uploaded files; deleting upload sessions; listing processed/completed job outputs; deleting processed job outputs; managing a separate 'outputs' directory with list, download, delete APIs.|
+|B6|Robust Logging and Startup Checks|N/A|Implemented. Logging to `backend/logs/app.log` with rotation. Startup checks for existence and writability of uploads, processed, outputs, and log directories.|
 
 Deliverable: user can upload intro, episode, outro; backend returns processed WAV/MP3.
 
@@ -77,10 +79,10 @@ Deliverable: MP4/WEBM video ready for YouTube.
 
 | ID | Task | Est. | Notes |
 |----|------|------|-------|
-|G1|Spin up React + Vite app|1d|Typescript|
-|G2|Integrate AudioMass as React component|1d|Fork & wrap|
-|G3|Implement pages: Library, Editor, Jobs, Settings|2d|
-|G4|Socket-based job progress|1d|
+|G1|Spin up React + Vite app|1d|Typescript. Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
+|G2|Integrate AudioMass as React component|1d|Fork & wrap. Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
+|G3|Implement pages: Library, Editor, Jobs, Settings|2d|Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
+|G4|Socket-based job progress|1d|Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
 
 ---
 

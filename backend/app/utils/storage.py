@@ -20,6 +20,7 @@ else:
 UPLOAD_DIR = DATA_ROOT / "uploads"
 PROCESSED_DIR = DATA_ROOT / "processed"
 TRANSCRIPT_DIR = DATA_ROOT / "transcripts"
+OUTPUTS_DIR = DATA_ROOT / "outputs" # <--- Add this line
 
 def ensure_dir_exists(path: Path) -> Path:
     """Ensure that the given directory exists, creating it if necessary."""
