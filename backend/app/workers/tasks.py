@@ -10,7 +10,9 @@ import ffmpeg # For ffmpeg.Error in error handling
 # Import settings and services
 from app.config import settings
 from app.db.database import SessionLocal
+from ..models.audio import AudioFile # Import AudioFile model
 from ..models.job import ProcessingJob, JobStatus
+from ..models.transcript import Transcript # Import Transcript model
 from ..services.audio_processing import merge_and_normalize_audio
 from ..services.transcription import transcribe_audio
 from ..utils.storage import (
@@ -223,19 +225,31 @@ def transcribe_audio_task(job_id: int, audio_input_path_str: str, output_basenam
         audio_input_path = DATA_ROOT / Path(audio_input_path_str)
         logger.debug(f"Transcription input path for job {job_id}: {audio_input_path}")
 
-        plain_text, srt_text = transcribe_audio(audio_input_path)
+        plain_text, srt_text, language = transcribe_audio(audio_input_path)
         
         ensure_dir_exists(TRANSCRIPT_DIR) # Ensure transcript dir exists
         txt_rel_path, srt_rel_path = save_transcript_to_files(
             output_basename, plain_text, srt_text, TRANSCRIPT_DIR
         )
 
+        # Create and save Transcript record
+        transcript_record = Transcript(
+            processing_job_id=job.id,
+            text_content=plain_text,
+            srt_content=srt_text,
+            language=language 
+            # created_at will use the model's default
+        )
+        db.add(transcript_record)
+        # The commit will happen in the finally block
+
         job.status = JobStatus.COMPLETED
         job.output_file_path = str(srt_rel_path) # Store SRT path as the main output
         job.error_message = None
         # Consider storing txt_rel_path in a new field or a JSON structure in job.results if needed.
         logger.info(f"Transcription successful for job_id: {job_id}. SRT: {srt_rel_path}, TXT: {txt_rel_path}")
-        return {"job_id": job_id, "srt_path": str(srt_rel_path), "txt_path": str(txt_rel_path), "status": "COMPLETED"}
+        logger.info(f"Transcript for job_id: {job_id} (language: {language}) saved to database.")
+        return {"job_id": job_id, "srt_path": str(srt_rel_path), "txt_path": str(txt_rel_path), "status": "COMPLETED", "language": language}
 
     except FileNotFoundError as e:
         logger.error(f"File not found during transcription for job {job_id}: {e}", exc_info=True)

@@ -145,6 +145,29 @@ For detailed API testing examples using `curl`, please refer to the [API Endpoin
 
 ---
 
+## Database Backups
+
+The Podcaster application relies on a PostgreSQL database (managed by the `podcaster-db` service in `docker-compose.yml`) to store crucial information about uploaded files, processing jobs, transcripts, and other metadata. **Regular backups of this database are essential to prevent data loss.**
+
+### Recommendations:
+
+*   **Use `pg_dump`:** The standard PostgreSQL utility `pg_dump` is recommended for creating logical backups of the database. It can be run against the running `podcaster-db` container.
+    Example command to create a plain-text SQL dump:
+    ```bash
+    docker exec -t podcaster-db pg_dump -U podcaster_user -d podcaster_db > backup_$(date +%Y%m%d_%H%M%S).sql
+    ```
+    (Replace `podcaster_user` and `podcaster_db` if you've changed them in your `.env` file.)
+    For more robust backup strategies, consider `pg_dump`'s custom format (`-Fc`) which allows for more flexibility during restoration (e.g., selecting specific tables, parallel restore).
+
+*   **Backup Regularly:** Schedule backups at an interval appropriate for your usage. For active use, daily backups are a good starting point.
+*   **Store Backups Securely:** Store your backup files in a safe, separate location, ideally off the machine running the Docker host. Consider cloud storage or a dedicated backup server.
+*   **Test Recovery Procedures:** Regularly test restoring your database from backups to ensure the backups are valid and that you are familiar with the recovery process. This can be done by restoring to a separate, temporary PostgreSQL instance.
+*   **Backup Docker Volumes (Optional but Recommended):** While `pg_dump` backs up the database content, also consider strategies for backing up the named Docker volume (`postgres_data`) that stores the raw PostgreSQL data files, especially if you have specific point-in-time recovery needs that go beyond logical backups. However, restoring from `pg_dump` is generally more flexible.
+
+Losing the database means losing all records of your podcast processing history and associated metadata. Please establish a robust backup routine.
+
+---
+
 ## Development Roadmap
 
 The project was divided into 7 major milestones.
