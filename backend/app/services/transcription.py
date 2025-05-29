@@ -53,7 +53,7 @@ def format_timestamp_srt(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{milliseconds:03d}"
 
 # --- Transcription Function ---
-def transcribe_audio(audio_input_path: Path) -> tuple[str, str]:
+def transcribe_audio(audio_input_path: Path) -> tuple[str, str, str | None]:
     """
     Transcribes an audio file using the pre-loaded Whisper model.
 
@@ -64,6 +64,7 @@ def transcribe_audio(audio_input_path: Path) -> tuple[str, str]:
         A tuple containing:
             - plain_text_transcript (str): The full transcript as plain text.
             - srt_transcript (str): The transcript in SRT format.
+            - detected_language (str | None): The detected language code (e.g., "en", "es") or None if detection fails.
     
     Raises:
         FileNotFoundError: If the audio input file does not exist.
@@ -85,13 +86,15 @@ def transcribe_audio(audio_input_path: Path) -> tuple[str, str]:
     plain_text_parts = []
     srt_parts = []
     segment_idx = 1
+    detected_language: str | None = None
 
     try:
         # beam_size can be adjusted. word_timestamps=True can provide word-level detail if needed.
         # For longer audio, consider parameters like `vad_filter=True` if VAD support is robust.
-        segments, info = model.transcribe(str(audio_input_path), beam_size=5) 
+        segments, info = model.transcribe(str(audio_input_path), beam_size=5)
         
-        logger.info(f"Transcription details - Detected language: '{info.language}' (Prob: {info.language_probability:.2f}), Duration: {info.duration:.2f}s")
+        detected_language = info.language
+        logger.info(f"Transcription details - Detected language: '{detected_language}' (Prob: {info.language_probability:.2f}), Duration: {info.duration:.2f}s")
 
         for segment in segments:
             plain_text_parts.append(segment.text.strip())
@@ -115,8 +118,8 @@ def transcribe_audio(audio_input_path: Path) -> tuple[str, str]:
     plain_text_transcript = " ".join(plain_text_parts)
     srt_transcript = "\n".join(srt_parts)
     
-    logger.info(f"Successfully transcribed {audio_input_path}. Total segments: {segment_idx-1}")
-    return plain_text_transcript, srt_transcript
+    logger.info(f"Successfully transcribed {audio_input_path}. Total segments: {segment_idx-1}. Language: {detected_language}")
+    return plain_text_transcript, srt_transcript, detected_language
 
 # Example of how to test this service (can be commented out or removed for production)
 if __name__ == "__main__":
@@ -146,11 +149,12 @@ if __name__ == "__main__":
     if test_audio_file.exists():
         logger.info(f"Attempting to transcribe test file: {test_audio_file.resolve()}")
         try:
-            text, srt = transcribe_audio(test_audio_file)
+            text, srt, lang = transcribe_audio(test_audio_file)
             print("\n--- Plain Text Transcript ---")
             print(text if text else "[No text transcribed]")
             print("\n--- SRT Transcript ---")
             print(srt if srt else "[No SRT content transcribed]")
+            print(f"\n--- Detected Language: {lang} ---")
         except Exception as e:
             print(f"Error during example transcription: {e}")
     else:

@@ -1,5 +1,9 @@
 """Singleton declarative base and helper to initialise DB.
 
+# Ensures all models are registered with Base when Base is imported.
+# This is crucial for Base.metadata.create_all(engine) to see all tables.
+from app import models # noqa - This line is important for model registration
+
 The rest of the codebase can simply do
 
     from app.db.base import Base

@@ -13,10 +13,13 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 import uuid
 import logging # Added for logging
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 from ..utils.storage import UPLOAD_DIR, PROCESSED_DIR, DATA_ROOT, ensure_dir_exists
 from ..db.database import SessionLocal
 from ..models.job import ProcessingJob, JobStatus
+from ..models.audio import AudioFile # Import AudioFile model
 from ..workers.tasks import process_audio_task
 
 router = APIRouter()
@@ -24,8 +27,8 @@ logger = logging.getLogger(__name__) # Added logger instance
 
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
 
-async def save_uploaded_file(file: UploadFile, session_id: str) -> Path:
-    """Save an uploaded file under a session-specific directory."""
+async def save_uploaded_file(file: UploadFile, session_id: str, db: Session) -> Path:
+    """Save an uploaded file under a session-specific directory and record it in the database."""
     session_dir = UPLOAD_DIR / session_id
     ensure_dir_exists(session_dir)
     logger.info(f"Ensured session directory exists at: {session_dir.resolve()}")
@@ -40,6 +43,20 @@ async def save_uploaded_file(file: UploadFile, session_id: str) -> Path:
                     break
                 f.write(chunk)
         logger.info(f"Successfully saved file '{file.filename}' for session '{session_id}' to path '{file_path}'.")
+
+        # Create AudioFile record
+        audio_file_record = AudioFile(
+            original_filename=file.filename,
+            saved_path=str(file_path.relative_to(DATA_ROOT)),
+            session_id=session_id,
+            file_size=file_path.stat().st_size,
+            content_type=file.content_type,
+            uploaded_at=datetime.utcnow()
+        )
+        db.add(audio_file_record)
+        # db.commit() will be called in the main route
+        logger.info(f"AudioFile record created for '{file.filename}' in session '{session_id}'.")
+
     except Exception as e:
         logger.error(f"Error during saving file '{file.filename}' for session '{session_id}' at path '{file_path}': {e}", exc_info=True)
         raise # Re-raise the exception to be caught by the caller
@@ -56,98 +73,112 @@ async def upload_audio(
     session_id = str(uuid.uuid4())
     saved = {}
     
-    main_filename = main_track.filename if main_track else "N/A"
-    intro_filename = intro.filename if intro else "None"
-    outro_filename = outro.filename if outro else "None"
-    logger.info(f"Received audio upload request for session '{session_id}'. Main: '{main_filename}', Intro: '{intro_filename}', Outro: '{outro_filename}'.")
+    db: Session = SessionLocal()
+    try:
+        main_filename = main_track.filename if main_track else "N/A"
+        intro_filename = intro.filename if intro else "None"
+        outro_filename = outro.filename if outro else "None"
+        logger.info(f"Received audio upload request for session '{session_id}'. Main: '{main_filename}', Intro: '{intro_filename}', Outro: '{outro_filename}'.")
 
-    # Validate and save main track
-    if main_track and main_track.filename:
-        file_ext = Path(main_track.filename).suffix.lower()
-        if file_ext not in ALLOWED_EXTENSIONS:
-            logger.error(f"Upload rejected for session '{session_id}': File '{main_track.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
+        # Validate and save main track
+        if main_track and main_track.filename:
+            file_ext = Path(main_track.filename).suffix.lower()
+            if file_ext not in ALLOWED_EXTENSIONS:
+                logger.error(f"Upload rejected for session '{session_id}': File '{main_track.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File '{main_track.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
+                )
+        elif main_track and not main_track.filename: 
+            logger.warning(f"Upload rejected for session '{session_id}': main_track has no filename.")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File '{main_track.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
+                detail="Main track file is invalid (no filename)."
             )
-    elif main_track and not main_track.filename: # Should not happen with FastAPI File(...) but good practice
-        logger.warning(f"Upload rejected for session '{session_id}': main_track has no filename.")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Main track file is invalid (no filename)."
-        )
-    # If main_track is None (not possible with File(...)) or filename is None after check, FastAPI would have already raised an error.
-    # This explicit check is more for clarity if File(...) was optional.
 
-    try:
-        logger.info(f"Attempting to save main_track: '{main_track.filename}' for session '{session_id}'.")
-        main_path = await save_uploaded_file(main_track, session_id)
-        saved["main_track"] = str(main_path.relative_to(DATA_ROOT))
-        logger.info(f"Successfully saved main_track: '{main_track.filename}' to '{saved['main_track']}' for session '{session_id}'.")
-    except Exception as e:
-        logger.error(f"Error saving file '{main_track.filename}' for session '{session_id}': {e}", exc_info=True)
+        try:
+            logger.info(f"Attempting to save main_track: '{main_track.filename}' for session '{session_id}'.")
+            main_path = await save_uploaded_file(main_track, session_id, db)
+            saved["main_track"] = str(main_path.relative_to(DATA_ROOT))
+            logger.info(f"Successfully saved main_track: '{main_track.filename}' to '{saved['main_track']}' for session '{session_id}'.")
+        except Exception as e:
+            logger.error(f"Error saving file '{main_track.filename}' for session '{session_id}': {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error saving file: {main_track.filename}. Error: {str(e)}"
+            )
+
+        # Optional tracks
+        if intro:
+            if intro.filename:
+                file_ext = Path(intro.filename).suffix.lower()
+                if file_ext not in ALLOWED_EXTENSIONS:
+                    logger.error(f"Upload rejected for session '{session_id}': File '{intro.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"File '{intro.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
+                    )
+            else: 
+                logger.warning(f"Upload rejected for session '{session_id}': intro file provided but has no filename.")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Intro file is invalid (no filename)."
+                )
+            try:
+                logger.info(f"Attempting to save intro: '{intro.filename}' for session '{session_id}'.")
+                intro_path = await save_uploaded_file(intro, session_id, db)
+                saved["intro"] = str(intro_path.relative_to(DATA_ROOT))
+                logger.info(f"Successfully saved intro: '{intro.filename}' to '{saved['intro']}' for session '{session_id}'.")
+            except Exception as e:
+                logger.error(f"Error saving file '{intro.filename}' for session '{session_id}': {e}", exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error saving file: {intro.filename}. Error: {str(e)}"
+                )
+                
+        if outro:
+            if outro.filename:
+                file_ext = Path(outro.filename).suffix.lower()
+                if file_ext not in ALLOWED_EXTENSIONS:
+                    logger.error(f"Upload rejected for session '{session_id}': File '{outro.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"File '{outro.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
+                    )
+            else: 
+                logger.warning(f"Upload rejected for session '{session_id}': outro file provided but has no filename.")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Outro file is invalid (no filename)."
+                )
+            try:
+                logger.info(f"Attempting to save outro: '{outro.filename}' for session '{session_id}'.")
+                outro_path = await save_uploaded_file(outro, session_id, db)
+                saved["outro"] = str(outro_path.relative_to(DATA_ROOT))
+                logger.info(f"Successfully saved outro: '{outro.filename}' to '{saved['outro']}' for session '{session_id}'.")
+            except Exception as e:
+                logger.error(f"Error saving file '{outro.filename}' for session '{session_id}': {e}", exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error saving file: {outro.filename}. Error: {str(e)}"
+                )
+        
+        db.commit() # Commit all AudioFile records for this session
+        logger.info(f"Successfully committed AudioFile records for session '{session_id}'.")
+        logger.info(f"Completed audio upload processing for session '{session_id}'. Saved files: {list(saved.keys())}.")
+        return {"upload_session_id": session_id, "saved_files": saved}
+    except HTTPException: # Re-raise HTTPExceptions directly
+        raise
+    except Exception as e: # Catch other exceptions, including potential DB errors during commit
+        logger.error(f"An unexpected error occurred in upload_audio for session '{session_id}': {e}", exc_info=True)
+        # db.rollback() # Not strictly necessary with SessionLocal if commit failed, but good practice
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error saving file: {main_track.filename}. Error: {str(e)}"
+            detail=f"An unexpected error occurred during processing: {str(e)}"
         )
-
-    # Optional tracks
-    if intro:
-        if intro.filename:
-            file_ext = Path(intro.filename).suffix.lower()
-            if file_ext not in ALLOWED_EXTENSIONS:
-                logger.error(f"Upload rejected for session '{session_id}': File '{intro.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"File '{intro.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
-                )
-        else: # Optional file, but if provided, it must have a filename
-            logger.warning(f"Upload rejected for session '{session_id}': intro file provided but has no filename.")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Intro file is invalid (no filename)."
-            )
-        try:
-            logger.info(f"Attempting to save intro: '{intro.filename}' for session '{session_id}'.")
-            intro_path = await save_uploaded_file(intro, session_id)
-            saved["intro"] = str(intro_path.relative_to(DATA_ROOT))
-            logger.info(f"Successfully saved intro: '{intro.filename}' to '{saved['intro']}' for session '{session_id}'.")
-        except Exception as e:
-            logger.error(f"Error saving file '{intro.filename}' for session '{session_id}': {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error saving file: {intro.filename}. Error: {str(e)}"
-            )
-            
-    if outro:
-        if outro.filename:
-            file_ext = Path(outro.filename).suffix.lower()
-            if file_ext not in ALLOWED_EXTENSIONS:
-                logger.error(f"Upload rejected for session '{session_id}': File '{outro.filename}' has an unsupported extension. Allowed extensions: {ALLOWED_EXTENSIONS}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"File '{outro.filename}' has an unsupported extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}."
-                )
-        else: # Optional file, but if provided, it must have a filename
-            logger.warning(f"Upload rejected for session '{session_id}': outro file provided but has no filename.")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Outro file is invalid (no filename)."
-            )
-        try:
-            logger.info(f"Attempting to save outro: '{outro.filename}' for session '{session_id}'.")
-            outro_path = await save_uploaded_file(outro, session_id)
-            saved["outro"] = str(outro_path.relative_to(DATA_ROOT))
-            logger.info(f"Successfully saved outro: '{outro.filename}' to '{saved['outro']}' for session '{session_id}'.")
-        except Exception as e:
-            logger.error(f"Error saving file '{outro.filename}' for session '{session_id}': {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error saving file: {outro.filename}. Error: {str(e)}"
-            )
-            
-    logger.info(f"Completed audio upload processing for session '{session_id}'. Saved files: {list(saved.keys())}.")
-    return {"upload_session_id": session_id, "saved_files": saved}
+    finally:
+        db.close()
+        logger.info(f"Database session closed for session_id '{session_id}'.")
 
 @router.post("/process/{session_id}")
 async def process_audio(session_id: str) -> dict:
