@@ -91,6 +91,19 @@ Follow these steps to set up and run The Podcaster locally.
    docker exec -it podcaster-ollama ollama pull llama2:7b-chat
    ```
 
+### Important: Data Directory Permissions
+
+This application uses Docker volumes to store uploaded and processed files in a `./data` directory on your host machine (relative to the `docker-compose.yml` file). On some systems, particularly Linux, Docker might not have default write permissions to this directory if it's created by your user.
+
+**Before launching the services for the first time, ensure the `./data` directory exists and has appropriate permissions.** You can create it and set open permissions (for local development) with:
+
+```bash
+mkdir -p ./data
+sudo chmod -R 777 ./data
+```
+
+For more restrictive permissions, ensure the user running the Docker daemon (or the user ID mapped into the container, typically `root` or the same UID as your host user if user-namespace remapping is not heavily customized) has write access to this directory. The application runs checks on startup and will log a CRITICAL error if the upload directory within `./data/uploads` is not writable, which is a strong indicator of a permissions issue.
+
 ### Launching Services
 
 Start all services:

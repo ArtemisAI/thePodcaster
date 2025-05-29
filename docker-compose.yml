@@ -21,6 +21,8 @@ services:
     volumes:
       - ./backend:/code
       - ./data:/data  # audio/video artifacts
+      - ./test/Intro_Outro_test.mp3:/data/preloaded_test_files/Intro_Outro_test.mp3:ro
+      - ./test/Main_Audio_test.wav:/data/preloaded_test_files/Main_Audio_test.wav:ro
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
@@ -42,6 +44,8 @@ services:
     volumes:
       - ./backend:/code
       - ./data:/data
+      - ./test/Intro_Outro_test.mp3:/data/preloaded_test_files/Intro_Outro_test.mp3:ro
+      - ./test/Main_Audio_test.wav:/data/preloaded_test_files/Main_Audio_test.wav:ro
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
@@ -110,7 +114,7 @@ services:
     image: nginx:1.25-alpine
     container_name: podcaster-frontend
     ports:
-      - "${FRONTEND_PORT}:80"
+      - "${FRONTEND_PORT:-8080}:80" # Default to 8080 if FRONTEND_PORT is not set
     volumes:
       - ./frontend:/usr/share/nginx/html:ro # Static front-end SPA
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Custom proxy & upload limits
