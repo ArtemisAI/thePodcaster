@@ -16,13 +16,14 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 
 from .logging_config import setup_logging
-from .api import routes_audio, routes_llm, routes_transcription, routes_publish
+from .api import routes_audio, routes_llm, routes_transcription, routes_publish, routes_outputs # <--- Add routes_outputs
 from fastapi.middleware.cors import CORSMiddleware # Ensure CORSMiddleware is imported if used
 
 # Required imports for startup event
 import os
 from pathlib import Path
-from app.utils.storage import DATA_ROOT, UPLOAD_DIR, PROCESSED_DIR, ensure_dir_exists
+from app.utils.storage import DATA_ROOT, UPLOAD_DIR, PROCESSED_DIR, OUTPUTS_DIR, ensure_dir_exists # <--- Add OUTPUTS_DIR
+from app.logging_config import LOG_DIR as APP_LOG_DIR # <--- Import LOG_DIR
 
 # Call logging setup at module level or early in create_app
 setup_logging() 
@@ -51,10 +52,19 @@ def create_app() -> FastAPI:
     async def startup_event():
         logger_startup.info("Application startup: Performing initial checks...")
         
+        # Ensure APP_LOG_DIR exists
+        try:
+            ensure_dir_exists(Path(APP_LOG_DIR)) # <--- Add this block
+            logger_startup.info(f"Ensured APP_LOG_DIR exists at: {Path(APP_LOG_DIR).resolve()}")
+        except Exception as e:
+            logger_startup.critical(f"Could not create APP_LOG_DIR at {Path(APP_LOG_DIR).resolve()}: {e}", exc_info=True)
+            # Decide if this should halt startup
+
         # Log resolved paths
         logger_startup.info(f"Resolved DATA_ROOT: {DATA_ROOT.resolve()}")
         logger_startup.info(f"Resolved UPLOAD_DIR: {UPLOAD_DIR.resolve()}")
         logger_startup.info(f"Resolved PROCESSED_DIR: {PROCESSED_DIR.resolve()}")
+        logger_startup.info(f"Resolved OUTPUTS_DIR: {OUTPUTS_DIR.resolve()}") # <--- Add this line
 
         # Ensure UPLOAD_DIR exists
         try:
@@ -70,6 +80,36 @@ def create_app() -> FastAPI:
             logger_startup.critical(f"CRITICAL: UPLOAD_DIR '{upload_dir_path_str}' is NOT WRITABLE by the application. File uploads will fail. Check host directory permissions if using Docker volume mounts.")
         else:
             logger_startup.info(f"UPLOAD_DIR '{upload_dir_path_str}' is writable.")
+
+        # Ensure PROCESSED_DIR exists
+        try:
+            ensure_dir_exists(PROCESSED_DIR) # ensure_dir_exists is not async
+            logger_startup.info(f"Ensured PROCESSED_DIR exists at: {PROCESSED_DIR.resolve()}")
+        except Exception as e:
+            logger_startup.critical(f"Could not create PROCESSED_DIR at {PROCESSED_DIR.resolve()}: {e}", exc_info=True)
+            # Potentially raise an exception here to halt startup if essential.
+
+        # Check if PROCESSED_DIR is writable
+        processed_dir_path_str = str(PROCESSED_DIR.resolve())
+        if not os.access(processed_dir_path_str, os.W_OK):
+            logger_startup.critical(f"CRITICAL: PROCESSED_DIR '{processed_dir_path_str}' is NOT WRITABLE by the application. Processing tasks may fail. Check host directory permissions if using Docker volume mounts.")
+        else:
+            logger_startup.info(f"PROCESSED_DIR '{processed_dir_path_str}' is writable.")
+
+        # Ensure OUTPUTS_DIR exists
+        try:
+            ensure_dir_exists(OUTPUTS_DIR)
+            logger_startup.info(f"Ensured OUTPUTS_DIR exists at: {OUTPUTS_DIR.resolve()}")
+        except Exception as e:
+            logger_startup.critical(f"Could not create OUTPUTS_DIR at {OUTPUTS_DIR.resolve()}: {e}", exc_info=True)
+            # Potentially raise an exception here to halt startup if essential.
+
+        # Check if OUTPUTS_DIR is writable
+        outputs_dir_path_str = str(OUTPUTS_DIR.resolve())
+        if not os.access(outputs_dir_path_str, os.W_OK):
+            logger_startup.critical(f"CRITICAL: OUTPUTS_DIR '{outputs_dir_path_str}' is NOT WRITABLE by the application. Output generation may fail. Check host directory permissions if using Docker volume mounts.")
+        else:
+            logger_startup.info(f"OUTPUTS_DIR '{outputs_dir_path_str}' is writable.")
         
         logger_startup.info("Startup checks completed.")
 
@@ -124,6 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_llm.router, prefix="/api/llm", tags=["llm"])
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
+    app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"]) # <--- Add this line
 
     # ------------------------------------------------------------------
     # Ensure database schema exists (development convenience).
@@ -147,5 +188,5 @@ def create_app() -> FastAPI:
 
 app = create_app()
 # Add a logger instance for use in this file if needed outside of handlers/routes
-# logger = logging.getLogger(__name__) # This was already here, the startup logger is local to create_app
+logger = logging.getLogger(__name__) # This was already here, the startup logger is local to create_app
 logger.info("FastAPI application created and configured.")
