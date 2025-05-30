@@ -1,0 +1,12 @@
+{
+  "name": "waveform-generator",
+  "version": "1.0.0",
+  "description": "Generates waveform images using Puppeteer and Wavesurfer.js",
+  "main": "generate-waveform.js",
+  "scripts": {
+    "start": "node generate-waveform.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}

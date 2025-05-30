@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Podcaster - Create and Manage Your Audio Content</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
 </head>
 <body>
     <header role="banner">
@@ -16,6 +17,12 @@
         <button data-view="libraryView" aria-controls="libraryView">Media Library</button>
     </nav>
     <main role="main">
+        <section id="waveformView" class="view" aria-labelledby="waveformViewHeading" style="display:block;" aria-hidden="false">
+            <h2 id="waveformViewHeading">Audio Waveform</h2>
+            <div id="waveform"></div>
+            <button id="playPauseBtn">Play</button>
+        </section>
+
         <section id="uploadView" class="view" aria-labelledby="uploadViewHeading" style="display:none;" aria-hidden="true">
             <h2 id="uploadViewHeading">Upload Audio Files</h2>
             <form id="uploadForm" aria-describedby="uploadFormDescription">

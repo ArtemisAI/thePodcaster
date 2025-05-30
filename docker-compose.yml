@@ -108,6 +108,24 @@ services:
  #      - db
 
   # ---------------------------------------------------------------------------
+  # Waveform Generator – Node.js/Puppeteer service for generating waveform images
+  # ---------------------------------------------------------------------------
+  waveform_generator:
+    build:
+      context: ./waveform-generator
+    container_name: waveform_generator
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Mount a volume for output files if generated inside the container
+      # and needed by other services or host.
+      - ./generated_waveforms:/usr/src/app/generated_waveforms
+      # Mount test audio if needed for direct testing
+      - ./test:/test_data
+    # Restart policy might not be needed if run on-demand
+    # restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
   # Front-end – placeholder Nginx serving AudioMass static build
   # ---------------------------------------------------------------------------
   frontend:

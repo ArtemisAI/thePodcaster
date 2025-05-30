@@ -525,7 +525,64 @@ document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof WaveSurfer === 'undefined') {
+    console.error('Wavesurfer.js library not loaded.');
+    return;
+  }
+
+  const wavesurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: 'rgb(200, 0, 200)',
+    progressColor: 'rgb(100, 0, 100)',
+    url: '../test/Main_Audio_test.wav', // Adjusted path assuming script.js is in frontend/ and test/ is at root
+    // Consider adding some basic styling for the waveform container if needed,
+    // or ensure it has some default dimensions.
+  });
+
+  wavesurfer.on('ready', function () {
+    console.log('Waveform is ready!');
+    // Set initial button text if needed
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    if (playPauseBtn) {
+        playPauseBtn.textContent = wavesurfer.isPlaying() ? 'Pause' : 'Play';
+    }
+  });
+
+  wavesurfer.on('error', function (err) {
+    console.error('Wavesurfer error:', err);
+  });
+  
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  if (playPauseBtn) {
+    playPauseBtn.onclick = function () {
+      wavesurfer.playPause();
+    };
+  }
+
+  wavesurfer.on('play', () => {
+    if(playPauseBtn) playPauseBtn.textContent = 'Pause';
+  });
+  wavesurfer.on('pause', () => {
+    if(playPauseBtn) playPauseBtn.textContent = 'Play';
+  });
+
+});
+
 // Expose to global scope if HTML onclick attributes are still used for some parts,
 // or if direct console access is needed for debugging.
 // Otherwise, with data-view attributes and proper event listeners, this might not be strictly necessary.
 window.App = App;
+
+// --- Manual Verification for Wavesurfer.js ---
+// 1. Open index.html in your browser.
+// 2. Open the browser's developer console.
+// 3. Check for any errors related to Wavesurfer.js.
+// 4. You should see "Waveform is ready!" logged in the console.
+// 5. The waveform should be visible on the page.
+// 6. The Play/Pause button should control audio playback.
+// 7. To confirm the Wavesurfer object exists, you can type `wavesurfer` in the console
+//    (if 'wavesurfer' is a global variable, or access it via your component/scope).
+//    If it was defined within the DOMContentLoaded, it might not be globally accessible
+//    unless explicitly exposed. A quick check is to inspect the div#waveform element;
+//    Wavesurfer.js usually populates it with a <wave> element and a <canvas>.
