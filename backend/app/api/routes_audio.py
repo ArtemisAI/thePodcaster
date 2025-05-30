@@ -24,6 +24,7 @@ from ..db.database import SessionLocal
 from ..models.job import ProcessingJob, JobStatus
 from ..models.audio import AudioFile # Import AudioFile model
 from ..workers.tasks import process_audio_task
+from ..config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__) # Added logger instance
@@ -38,12 +39,41 @@ async def save_uploaded_file(file: UploadFile, session_id: str, db: Session) -> 
     file_path = session_dir / file.filename
     
     logger.info(f"Attempting to save file '{file.filename}' for session '{session_id}' to path '{file_path}'.")
+    max_bytes = settings.max_upload_size_bytes
+    bytes_written = 0
     try:
         with open(file_path, "wb") as f:
             while True:
                 chunk = await file.read(8192)  # Read file in 8KB chunks
                 if not chunk:
                     break
+                bytes_written += len(chunk)
+                # Enforce per-file size limit if configured (0 == unlimited)
+                if max_bytes and bytes_written > max_bytes:
+                    logger.warning(
+                        "File upload exceeded max size. session=%s file=%s limit=%dMB",
+                        session_id,
+                        file.filename,
+                        settings.MAX_UPLOAD_SIZE_MB,
+                    )
+                    # Remove partially written file before raising
+                    try:
+                        f.close()
+                    except Exception:
+                        pass
+                    try:
+                        file_path.unlink(missing_ok=True)
+                    except Exception as cleanup_err:
+                        logger.error(
+                            "Failed to clean up over-sized temp file %s: %s",
+                            file_path,
+                            cleanup_err,
+                        )
+
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"File '{file.filename}' exceeds the maximum allowed size of {settings.MAX_UPLOAD_SIZE_MB} MB."
+                    )
                 f.write(chunk)
         logger.info(f"Successfully saved file '{file.filename}' for session '{session_id}' to path '{file_path}'.")
 
@@ -100,15 +130,34 @@ async def upload_audio(
             )
 
         try:
-            logger.info(f"Attempting to save main_track: '{main_track.filename}' for session '{session_id}'.")
+            logger.info(
+                "Attempting to save main_track: '%s' for session '%s'. Size limit=%dMB",
+                main_track.filename,
+                session_id,
+                settings.MAX_UPLOAD_SIZE_MB,
+            )
             main_path = await save_uploaded_file(main_track, session_id, db)
             saved["main_track"] = str(main_path.relative_to(DATA_ROOT))
-            logger.info(f"Successfully saved main_track: '{main_track.filename}' to '{saved['main_track']}' for session '{session_id}'.")
+            logger.info(
+                "Successfully saved main_track: '%s' (%s) to '%s' for session '%s'.",
+                main_track.filename,
+                main_track.content_type,
+                saved["main_track"],
+                session_id,
+            )
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error saving file '{main_track.filename}' for session '{session_id}': {e}", exc_info=True)
+            logger.error(
+                "Unhandled exception while saving main track '%s' (session=%s): %s",
+                main_track.filename,
+                session_id,
+                e,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error saving file: {main_track.filename}. Error: {str(e)}"
+                detail=f"Error saving file: {main_track.filename}. Error: {str(e)}",
             )
 
         # Optional tracks

@@ -38,4 +38,19 @@ class Settings:
     OLLAMA_DEFAULT_MODEL: str = os.getenv('OLLAMA_DEFAULT_MODEL') or ''
     FRONTEND_PORT: int = int(os.getenv('FRONTEND_PORT') or '80')
 
+    # ------------------------------------------------------------------
+    # File upload configuration
+    # ------------------------------------------------------------------
+    # Maximum allowed size for a *single* uploaded file expressed in
+    # megabytes. Set the env var ``MAX_UPLOAD_SIZE_MB`` in docker-compose
+    # or your shell to override the default.  A value of ``0`` disables
+    # the limit entirely (NOT recommended in production).
+    # ------------------------------------------------------------------
+    MAX_UPLOAD_SIZE_MB: int = int(os.getenv('MAX_UPLOAD_SIZE_MB') or '500')
+
+    @property
+    def max_upload_size_bytes(self) -> int:
+        """Return the upload size limit in raw bytes (0 == unlimited)."""
+        return 0 if self.MAX_UPLOAD_SIZE_MB == 0 else self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
 settings = Settings()

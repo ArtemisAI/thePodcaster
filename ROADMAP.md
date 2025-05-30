@@ -28,6 +28,7 @@ Deliverable: `docker compose up` results in a running FastAPI container returnin
 |B4|Send progress updates over WebSocket (FastAPI)|1d|Deferred or Future Enhancement.|
 |B5|Enhanced File Management APIs|N/A|Implemented. Includes: listing upload sessions, files within sessions; downloading original uploaded files; deleting upload sessions; listing processed/completed job outputs; deleting processed job outputs; managing a separate 'outputs' directory with list, download, delete APIs.|
 |B6|Robust Logging and Startup Checks|N/A|Implemented. Logging to `backend/logs/app.log` with rotation. Startup checks for existence and writability of uploads, processed, outputs, and log directories.|
+|B7|Configurable per-file upload size limit & graceful 413 errors|N/A|Implemented in `routes_audio.py`, `config.py`, Docker & Nginx. Environment variable: `MAX_UPLOAD_SIZE_MB`.|
 
 Deliverable: user can upload intro, episode, outro; backend returns processed WAV/MP3.
 

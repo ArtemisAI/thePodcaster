@@ -1,0 +1,11 @@
+I changed the backend configuration to support a configurable per-file upload size limit and to ensure large uploads are handled gracefully.
+
+Specifically, I:
+• Added `MAX_UPLOAD_SIZE_MB` to `backend/app/config.py` and `.env.example`.
+• Updated docker-compose so backend & worker containers receive the new env var.
+• Implemented streaming size enforcement in `routes_audio.save_uploaded_file` which now raises a proper 413 error and cleans up partial files.
+• Bumped `frontend/nginx.conf` `client_max_body_size` to 2G, letting FastAPI return helpful JSON errors instead of Nginx.
+• Extended logging around uploads for easier debugging.
+• Extended the roadmap with task B7.
+
+Reason: Large podcast WAV files exceeded previous limits, causing silent failures. With these changes the limit is explicit, configurable, and robust.
