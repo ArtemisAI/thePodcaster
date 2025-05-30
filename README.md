@@ -62,8 +62,9 @@ The stack is designed to **run completely on a single workstation** while taking
 ## Simplified Frontend
 
 Due to challenges with the Node.js tooling environment during development, a simplified manual frontend (HTML, CSS, JavaScript) was implemented. It provides core functionality for:
-*   Uploading audio files (main, intro, outro) to initiate processing.
-*   Basic display of job submission status.
+    *   Uploading audio files (main, intro, outro) to initiate processing.
+    *   Viewing and downloading processed jobs (Media Library).
+    *   Generating additional visualizations (e.g., waveform videos) via a Visualization Dashboard.
 This frontend is served via Nginx and directly interacts with the backend API. It does not require a Node.js build step. The original plan for a React/Vite dashboard (Milestone 7) was adapted to this simpler approach.
 
 ---

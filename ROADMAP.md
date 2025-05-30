@@ -80,10 +80,10 @@ Deliverable: MP4/WEBM video ready for YouTube.
 
 | ID | Task | Est. | Notes |
 |----|------|------|-------|
-|G1|Spin up React + Vite app|1d|Typescript. Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
-|G2|Integrate AudioMass as React component|1d|Fork & wrap. Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
-|G3|Implement pages: Library, Editor, Jobs, Settings|2d|Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
-|G4|Socket-based job progress|1d|Note: Original plan adapted to a simplified HTML/JS frontend. Core backend APIs are available for future advanced frontend development.|
+|G1|Spin up React + Vite app (Deferred)|1d|Original plan postponed – simple HTML/JS frontend currently used.|
+|G2|Integrate AudioMass as React component (Deferred)|1d|Will resume once React base exists.|
+|G3|Implement pages: Library, Editor, Jobs, Settings (Deferred)|2d|APIs ready – UI deferred.|
+|G4|Socket-based job progress (Deferred)|1d|Depends on WebSocket infra.|
 
 ---
 

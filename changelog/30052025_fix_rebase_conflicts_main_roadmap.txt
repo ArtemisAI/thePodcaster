@@ -1,0 +1,4 @@
+I resolved Git rebase merge conflicts in `backend/app/main.py` and `ROADMAP.md`.
+I removed conflict markers, ensured only implemented API routers are imported,
+and clarified deferred Milestone 7 tasks.  This restores a clean working tree
+and allows the application to start without `ModuleNotFoundError`.

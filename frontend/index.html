@@ -14,6 +14,7 @@
         <button data-view="uploadView" aria-controls="uploadView">Upload Audio</button>
         <button data-view="jobsView" aria-controls="jobsView">View Jobs</button>
         <button data-view="libraryView" aria-controls="libraryView">Media Library</button>
+        <button data-view="visualizationView" aria-controls="visualizationView">Visualizations</button>
     </nav>
     <main role="main">
         <section id="uploadView" class="view" aria-labelledby="uploadViewHeading" style="display:none;" aria-hidden="true">
@@ -21,17 +22,17 @@
             <form id="uploadForm" aria-describedby="uploadFormDescription">
                 <p id="uploadFormDescription" class="sr-only">Upload main, intro, and outro audio tracks for processing.</p>
                 <div>
-                    <label for="mainTrack">Main Track <span class="tooltip-trigger" data-tooltip="The primary audio content for your podcast episode. Required. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Main Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <label for="mainTrack">Main Track <span class="tooltip-trigger" data-tooltip="The primary audio content for your podcast episode. Allowed types: MP3, WAV." aria-label="Help for Main Track"><span aria-hidden="true">&#❓</span></span></label>
                     <input type="file" id="mainTrack" name="main_track" required aria-required="true" aria-describedby="mainTrackFeedback">
                     <div id="mainTrackFeedback" class="validation-feedback" aria-live="polite"></div>
                 </div>
                 <div>
-                    <label for="introTrack">Intro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be prepended to your main track. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Intro Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <label for="introTrack">Intro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be prepended to your main track. Allowed types: MP3, WAV." aria-label="Help for Intro Track"><span aria-hidden="true">&#❓</span></span></label>
                     <input type="file" id="introTrack" name="intro" aria-describedby="introTrackFeedback">
                     <div id="introTrackFeedback" class="validation-feedback" aria-live="polite"></div>
                 </div>
                 <div>
-                    <label for="outroTrack">Outro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be appended to your main track. Max 25MB. Allowed types: MP3, WAV." aria-label="Help for Outro Track"><span aria-hidden="true">&#❓</span></span></label>
+                    <label for="outroTrack">Outro Track (Optional) <span class="tooltip-trigger" data-tooltip="An optional audio file to be appended to your main track. Allowed types: MP3, WAV." aria-label="Help for Outro Track"><span aria-hidden="true">&#❓</span></span></label>
                     <input type="file" id="outroTrack" name="outro" aria-describedby="outroTrackFeedback">
                     <div id="outroTrackFeedback" class="validation-feedback" aria-live="polite"></div>
                 </div>
@@ -61,6 +62,24 @@
             <ul id="libraryList" aria-live="polite">
                 <!-- Library items will be populated here by script.js -->
             </ul>
+        </section>
+        <section id="visualizationView" class="view" aria-labelledby="visualizationViewHeading" style="display:none;" aria-hidden="true">
+            <h2 id="visualizationViewHeading">Visualizations</h2>
+            <div>
+                <label for="vizFileSelect">Select Media File <span class="tooltip-trigger" data-tooltip="Choose a processed file to visualize." aria-label="Help for Media File selection"><span aria-hidden="true">&#❓</span></span></label>
+                <select id="vizFileSelect" aria-describedby="vizFileSelectFeedback">
+                    <option value="">-- Loading files --</option>
+                </select>
+            </div>
+            <fieldset>
+                <legend>Select Visualization Type</legend>
+                <div>
+                    <input type="checkbox" id="vizWaveform" name="vizWaveform" value="waveform">
+                    <label for="vizWaveform">Waveform Video</label>
+                </div>
+            </fieldset>
+            <button id="processVizBtn">Process Visualization</button>
+            <div id="vizResponse" style="display:none;" aria-live="polite"></div>
         </section>
     </main>
     <footer role="contentinfo">

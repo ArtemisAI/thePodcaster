@@ -1,192 +1,183 @@
 """ASGI entry-point for the FastAPI application.
 
-At a minimum, this file should:
-* Instantiate `FastAPI`.
-* Include routers from `app.api`.
-* Provide a health-check route at `/api/health`.
+This module
+1. instantiates the :class:`fastapi.FastAPI` application;
+2. wires all currently implemented API routers located in ``app.api``;
+3. registers global exception handlers and middleware; and
+4. performs a few start-up sanity checks (log directory, data locations
+   writable, …).
 
-Additional middleware (CORS, logging, tracing) will be added later.
+The *upstream* branch referenced additional routers (``routes_video`` and
+``routes_library``).  Those files are **not** present in the local code-base; if
+we tried to import them the application would crash at start-up.  Until the
+corresponding modules are added we purposefully omit these imports so that the
+code runs successfully.
 """
 
-from fastapi import FastAPI, APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from __future__ import annotations
 
 import logging
-
-from .logging_config import setup_logging
-from .api import routes_audio, routes_llm, routes_transcription, routes_publish, routes_outputs # <--- Add routes_outputs
-from fastapi.middleware.cors import CORSMiddleware # Ensure CORSMiddleware is imported if used
-
-# Required imports for startup event
 import os
 from pathlib import Path
-from app.utils.storage import DATA_ROOT, UPLOAD_DIR, PROCESSED_DIR, OUTPUTS_DIR, ensure_dir_exists # <--- Add OUTPUTS_DIR
-from app.logging_config import LOG_DIR as APP_LOG_DIR # <--- Import LOG_DIR
+from typing import Any
 
-# Call logging setup at module level or early in create_app
-setup_logging() 
-# Alternatively, call inside create_app() if preferred for certain testing scenarios,
-# but module level is fine for general use.
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# --- Custom Base Exception (Optional) ---
+# Internal utilities
+from app.logging_config import LOG_DIR as APP_LOG_DIR
+from app.logging_config import setup_logging
+from app.utils.storage import (
+    DATA_ROOT,
+    OUTPUTS_DIR,
+    PROCESSED_DIR,
+    UPLOAD_DIR,
+    ensure_dir_exists,
+)
+
+# API routers that are actually available in the repository
+from app.api import (
+    routes_audio,
+    routes_llm,
+    routes_outputs,
+    routes_publish,
+    routes_transcription,
+)
+
+
+# ---------------------------------------------------------------------------
+# Logging must be configured as soon as possible so that any errors during
+# import/start-up are captured.
+# ---------------------------------------------------------------------------
+setup_logging()
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Application factory
+# ---------------------------------------------------------------------------
+
+
 class AppBaseException(Exception):
-    def __init__(self, status_code: int, detail: str):
+    """Domain-level base exception so we can map to JSON responses easily."""
+
+    def __init__(self, status_code: int, detail: str) -> None:  # noqa: D401
+        super().__init__(detail)
         self.status_code = status_code
         self.detail = detail
-        super().__init__(detail)
 
-def create_app() -> FastAPI:
-    """Factory that wires and returns the FastAPI application."""
-    
-    # setup_logging() # Alternative placement for logging setup
 
-    app = FastAPI(title="The Podcaster API", version="0.1.0", docs_url="/api/docs")
+def create_app() -> FastAPI:  # noqa: D401 – factory nomenclature is fine
+    """Wire and return the FastAPI application instance."""
 
-    # Get a logger instance for startup events
-    logger_startup = logging.getLogger(__name__)
+    app = FastAPI(
+        title="The Podcaster API",
+        version="0.1.0",
+        docs_url="/api/docs",
+    )
 
-    # --- Startup Event Handler ---
+    # ------------------------------------------------------------------
+    # Start-up checks – run synchronously because FastAPI will await them.
+    # ------------------------------------------------------------------
+
     @app.on_event("startup")
-    async def startup_event():
-        logger_startup.info("Application startup: Performing initial checks...")
-        
-        # Ensure APP_LOG_DIR exists
-        try:
-            ensure_dir_exists(Path(APP_LOG_DIR)) # <--- Add this block
-            logger_startup.info(f"Ensured APP_LOG_DIR exists at: {Path(APP_LOG_DIR).resolve()}")
-        except Exception as e:
-            logger_startup.critical(f"Could not create APP_LOG_DIR at {Path(APP_LOG_DIR).resolve()}: {e}", exc_info=True)
-            # Decide if this should halt startup
+    async def _startup_checks() -> None:  # noqa: D401
+        logger.info("Running start-up checks …")
 
-        # Log resolved paths
-        logger_startup.info(f"Resolved DATA_ROOT: {DATA_ROOT.resolve()}")
-        logger_startup.info(f"Resolved UPLOAD_DIR: {UPLOAD_DIR.resolve()}")
-        logger_startup.info(f"Resolved PROCESSED_DIR: {PROCESSED_DIR.resolve()}")
-        logger_startup.info(f"Resolved OUTPUTS_DIR: {OUTPUTS_DIR.resolve()}") # <--- Add this line
+        for path in (APP_LOG_DIR, DATA_ROOT, UPLOAD_DIR, PROCESSED_DIR, OUTPUTS_DIR):
+            try:
+                ensure_dir_exists(Path(path))
+            except Exception as exc:  # pragma: no cover – defensive
+                logger.critical("Cannot create/access directory %s – %s", path, exc)
+            else:
+                writable = os.access(str(path), os.W_OK)
+                logger.info("Directory %s is %swritable", path, "" if writable else "NOT ")
 
-        # Ensure UPLOAD_DIR exists
-        try:
-            ensure_dir_exists(UPLOAD_DIR) # ensure_dir_exists is not async
-            logger_startup.info(f"Ensured UPLOAD_DIR exists at: {UPLOAD_DIR.resolve()}")
-        except Exception as e:
-            logger_startup.critical(f"Could not create UPLOAD_DIR at {UPLOAD_DIR.resolve()}: {e}", exc_info=True)
-            # Potentially raise an exception here to halt startup if essential.
+        logger.info("Start-up checks finished.")
 
-        # Check if UPLOAD_DIR is writable
-        upload_dir_path_str = str(UPLOAD_DIR.resolve())
-        if not os.access(upload_dir_path_str, os.W_OK):
-            logger_startup.critical(f"CRITICAL: UPLOAD_DIR '{upload_dir_path_str}' is NOT WRITABLE by the application. File uploads will fail. Check host directory permissions if using Docker volume mounts.")
-        else:
-            logger_startup.info(f"UPLOAD_DIR '{upload_dir_path_str}' is writable.")
+    # ------------------------------------------------------------------
+    # Exception handlers
+    # ------------------------------------------------------------------
 
-        # Ensure PROCESSED_DIR exists
-        try:
-            ensure_dir_exists(PROCESSED_DIR) # ensure_dir_exists is not async
-            logger_startup.info(f"Ensured PROCESSED_DIR exists at: {PROCESSED_DIR.resolve()}")
-        except Exception as e:
-            logger_startup.critical(f"Could not create PROCESSED_DIR at {PROCESSED_DIR.resolve()}: {e}", exc_info=True)
-            # Potentially raise an exception here to halt startup if essential.
-
-        # Check if PROCESSED_DIR is writable
-        processed_dir_path_str = str(PROCESSED_DIR.resolve())
-        if not os.access(processed_dir_path_str, os.W_OK):
-            logger_startup.critical(f"CRITICAL: PROCESSED_DIR '{processed_dir_path_str}' is NOT WRITABLE by the application. Processing tasks may fail. Check host directory permissions if using Docker volume mounts.")
-        else:
-            logger_startup.info(f"PROCESSED_DIR '{processed_dir_path_str}' is writable.")
-
-        # Ensure OUTPUTS_DIR exists
-        try:
-            ensure_dir_exists(OUTPUTS_DIR)
-            logger_startup.info(f"Ensured OUTPUTS_DIR exists at: {OUTPUTS_DIR.resolve()}")
-        except Exception as e:
-            logger_startup.critical(f"Could not create OUTPUTS_DIR at {OUTPUTS_DIR.resolve()}: {e}", exc_info=True)
-            # Potentially raise an exception here to halt startup if essential.
-
-        # Check if OUTPUTS_DIR is writable
-        outputs_dir_path_str = str(OUTPUTS_DIR.resolve())
-        if not os.access(outputs_dir_path_str, os.W_OK):
-            logger_startup.critical(f"CRITICAL: OUTPUTS_DIR '{outputs_dir_path_str}' is NOT WRITABLE by the application. Output generation may fail. Check host directory permissions if using Docker volume mounts.")
-        else:
-            logger_startup.info(f"OUTPUTS_DIR '{outputs_dir_path_str}' is writable.")
-        
-        logger_startup.info("Startup checks completed.")
-
-    # --- Exception Handlers ---
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        # Log the validation error details
-        logging.error(f"Request validation error: {exc.errors()}", exc_info=False) # exc_info=False as errors() is enough
-        return JSONResponse(
-            status_code=422,
-            content={"detail": "Validation Error", "errors": exc.errors()},
-        )
+    async def _validation_error_handler(  # noqa: D401
+        _request: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:  # type: ignore[valid-type]
+        logger.error("Request validation error: %s", exc.errors())
+        return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
-    @app.exception_handler(StarletteHTTPException) # Handles FastAPI's HTTPException as it inherits from Starlette's
-    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-        logging.error(f"HTTP exception: {exc.status_code} - {exc.detail}", exc_info=False) # Usually no need for full stack trace
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail},
-        )
-    
-    @app.exception_handler(AppBaseException) # Custom base exception
-    async def app_base_exception_handler(request: Request, exc: AppBaseException):
-        logging.error(f"Application exception: {exc.status_code} - {exc.detail}", exc_info=True)
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail}
-        )
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error_handler(  # noqa: D401
+        _request: Request,
+        exc: StarletteHTTPException,
+    ) -> JSONResponse:  # type: ignore[valid-type]
+        logger.error("HTTP exception %s: %s", exc.status_code, exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    @app.exception_handler(Exception) # Generic catch-all for 500 errors
-    async def generic_exception_handler(request: Request, exc: Exception):
-        # Log the full traceback for unexpected errors
-        logging.error("Unhandled exception occurred", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Internal Server Error"},
-        )
+    @app.exception_handler(AppBaseException)
+    async def _app_error_handler(  # noqa: D401
+        _request: Request,
+        exc: AppBaseException,
+    ) -> JSONResponse:  # type: ignore[valid-type]
+        logger.error("Application exception: %s", exc.detail, exc_info=True)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    # --- Middleware ---
-    # Add CORS middleware (ensure it's configured if it was there before)
+    @app.exception_handler(Exception)
+    async def _generic_error_handler(  # noqa: D401
+        _request: Request,
+        exc: Exception,
+    ) -> JSONResponse:  # type: ignore[valid-type]
+        logger.exception("Unhandled exception: %s", exc)
+        return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+    # ------------------------------------------------------------------
+    # Middleware
+    # ------------------------------------------------------------------
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allows all origins
+        allow_origins=["*"],
         allow_credentials=True,
-        allow_methods=["*"],  # Allows all methods
-        allow_headers=["*"],  # Allows all headers
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
-    
-    # --- Routers ---
-    # Include actual routers once they exist (e.g., audio_router)
+
+    # ------------------------------------------------------------------
+    # Routers – *only* those that exist in the repo
+    # ------------------------------------------------------------------
+
     app.include_router(routes_audio.router, prefix="/api/audio", tags=["audio"])
     app.include_router(routes_llm.router, prefix="/api/llm", tags=["llm"])
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
-    app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"]) # <--- Add this line
+    app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"])
 
     # ------------------------------------------------------------------
-    # Ensure database schema exists (development convenience).
+    # Ensure DB schema exists (development convenience only).
     # ------------------------------------------------------------------
+
     try:
-        from app.db.database import engine
+        from app.db.database import engine  # local import to avoid circular deps
         from app.db.base import Base
 
         Base.metadata.create_all(bind=engine)
-    except Exception as exc:  # pragma: no cover – startup safeguard
-        logging.getLogger(__name__).exception("Failed to create DB schema: %s", exc)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Failed to create DB schema: %s", exc)
 
+    # ------------------------------------------------------------------
+    # Miscellaneous endpoints
+    # ------------------------------------------------------------------
 
     @app.get("/api/health")
-    async def health() -> dict[str, str]:
-        logging.info("Health check endpoint was called.")
+    async def _health() -> dict[str, str]:  # noqa: D401
         return {"status": "ok"}
 
     return app
 
 
-app = create_app()
-# Add a logger instance for use in this file if needed outside of handlers/routes
-logger = logging.getLogger(__name__) # This was already here, the startup logger is local to create_app
-logger.info("FastAPI application created and configured.")
+# Instantiate at import time so `uvicorn app.main:app` works.
+app: FastAPI = create_app()

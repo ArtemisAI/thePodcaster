@@ -2,8 +2,6 @@
 const App = {
     API_BASE_URL: '/api',
     ALLOWED_AUDIO_TYPES: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'], // Common audio types
-    MAX_FILE_SIZE_MB: 25, // Max file size in MB
-    MAX_FILE_SIZE_BYTES: 25 * 1024 * 1024,
 
     // DOM Elements
     elements: {
@@ -15,6 +13,9 @@ const App = {
         uploadResponseDiv: null,
         jobsList: null,
         libraryList: null,
+        vizFileSelect: null,
+        processVizBtn: null,
+        vizResponseDiv: null,
         jobIdInput: null, // Will be added in HTML
         submitButton: null, // Will be added in HTML
         // Spinners will be handled dynamically
@@ -30,6 +31,9 @@ const App = {
         this.elements.uploadResponseDiv = document.getElementById('uploadResponse');
         this.elements.jobsList = document.getElementById('jobsList');
         this.elements.libraryList = document.getElementById('libraryList');
+        this.elements.vizFileSelect = document.getElementById('vizFileSelect');
+        this.elements.processVizBtn = document.getElementById('processVizBtn');
+        this.elements.vizResponseDiv = document.getElementById('vizResponse');
         this.elements.jobIdInput = document.getElementById('jobIdInput'); // Assuming this will be added
         this.elements.submitButton = this.elements.uploadForm ? this.elements.uploadForm.querySelector('button[type="submit"]') : null;
 
@@ -54,6 +58,7 @@ const App = {
         
         const refreshLibraryBtn = document.getElementById('refreshLibraryBtn');
         if (refreshLibraryBtn) refreshLibraryBtn.addEventListener('click', this.fetchLibrary.bind(this));
+        if (this.elements.processVizBtn) this.elements.processVizBtn.addEventListener('click', this.handleVisualizationProcess.bind(this));
 
 
         // Tooltip setup (delegated event listener on a parent)
@@ -86,7 +91,9 @@ const App = {
             if (viewId === 'jobsView' && this.elements.jobsList.children.length === 0) {
                 // this.fetchJobs(); // Optionally auto-fetch
             } else if (viewId === 'libraryView' && this.elements.libraryList.children.length === 0) {
-                // this.fetchLibrary(); // Optionally auto-fetch
+                this.fetchLibrary();
+            } else if (viewId === 'visualizationView') {
+                this.fetchLibraryForViz();
             }
         } else {
             console.error(`View with ID ${viewId} not found.`);
@@ -150,11 +157,7 @@ const App = {
             message = `Invalid file type for ${file.name}. Allowed: ${this.ALLOWED_AUDIO_TYPES.join(', ')}.`;
             isValid = false;
         }
-        // File Size Check
-        else if (file.size > this.MAX_FILE_SIZE_BYTES) {
-            message = `File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max size: ${this.MAX_FILE_SIZE_MB}MB.`;
-            isValid = false;
-        }
+        // File Size Check removed (no client-side size limit)
 
         if (!isValid && feedbackElement) {
             feedbackElement.textContent = message;
@@ -389,27 +392,151 @@ const App = {
             if (jobsListStatus) jobsListStatus.textContent = `Error fetching jobs.`;
         }
     },
-
+    // Fetch media library items from backend
     fetchLibrary: async function() {
+        if (!this.elements.libraryList) return;
+        const libraryListStatus = document.getElementById('libraryListStatus');
+        if (libraryListStatus) libraryListStatus.textContent = 'Loading library items...';
+        this.showSpinner(this.elements.libraryList, true);
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/library`);
+            const items = await response.json();
+            if (!response.ok) throw new Error(items.detail || response.statusText);
+            this.hideSpinner(this.elements.libraryList);
+            if (!items || items.length === 0) {
+                this.elements.libraryList.innerHTML = '<li>No media found in the library.</li>';
+                if (libraryListStatus) libraryListStatus.textContent = 'No media found in the library.';
+                return;
+            }
+            this.elements.libraryList.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.setAttribute('role', 'listitem');
+                const idSpan = document.createElement('span');
+                idSpan.className = 'lib-field lib-id';
+                idSpan.innerHTML = `<strong>ID:</strong> ${item.job_id}`;
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'lib-field lib-type';
+                typeSpan.innerHTML = `<strong>Type:</strong> ${item.job_type}`;
+                const pathSpan = document.createElement('span');
+                pathSpan.className = 'lib-field lib-path';
+                pathSpan.innerHTML = `<strong>Path:</strong> ${item.output_file_path}`;
+                const actionsSpan = document.createElement('span');
+                actionsSpan.className = 'lib-field lib-actions';
+                actionsSpan.innerHTML = `<strong>Actions:</strong> `;
+                const downloadLink = document.createElement('a');
+                downloadLink.href = item.download_url;
+                downloadLink.target = '_blank';
+                downloadLink.textContent = 'Download';
+                actionsSpan.appendChild(downloadLink);
+                li.appendChild(idSpan);
+                li.appendChild(typeSpan);
+                li.appendChild(pathSpan);
+                li.appendChild(actionsSpan);
+                this.elements.libraryList.appendChild(li);
+            });
+            if (libraryListStatus) libraryListStatus.textContent = `Library list updated. ${items.length} items shown.`;
+        } catch (error) {
+            console.error('Error fetching library:', error);
+            this.hideSpinner(this.elements.libraryList);
+            this.elements.libraryList.innerHTML = `<li>Error fetching library: ${error.message}</li>`;
+            if (libraryListStatus) libraryListStatus.textContent = 'Error fetching library.';
+        }
+    },
+
+    fetchLibraryForViz: async function() {
+        if (!this.elements.vizFileSelect) return;
+        this.elements.vizFileSelect.innerHTML = '<option value="">Loading files...</option>';
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/library`);
+            const items = await response.json();
+            if (!response.ok) throw new Error(items.detail || response.statusText);
+            this.elements.vizFileSelect.innerHTML = '<option value="">-- Select a file --</option>';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.job_id;
+                option.textContent = `${item.job_type} - ${item.output_file_path}`;
+                this.elements.vizFileSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error fetching library for visualization:', error);
+            this.elements.vizFileSelect.innerHTML = '<option value="">Error loading items</option>';
+        }
+    },
+    handleVisualizationProcess: async function() {
+        if (!this.elements.vizResponseDiv) return;
+        const jobId = this.elements.vizFileSelect ? this.elements.vizFileSelect.value : null;
+        const vizWaveform = document.getElementById('vizWaveform')?.checked;
+        this.clearMessage(this.elements.vizResponseDiv);
+        if (!jobId) {
+            this.displayMessage(this.elements.vizResponseDiv, 'Please select a file to visualize.', 'error');
+            return;
+        }
+        if (!vizWaveform) {
+            this.displayMessage(this.elements.vizResponseDiv, 'Please select at least one visualization type.', 'error');
+            return;
+        }
+        this.displayMessage(this.elements.vizResponseDiv, 'Starting visualization...', 'processing');
+        try {
+            const res = await fetch(`${this.API_BASE_URL}/video/process/${jobId}`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || res.statusText);
+            this.displayMessage(this.elements.vizResponseDiv, `Visualization started! Job ID: ${data.job_id}.`, 'success');
+        } catch (error) {
+            console.error('Error starting visualization:', error);
+            this.displayMessage(this.elements.vizResponseDiv, `Error: ${error.message}`, 'error');
+        }
+    },
         if (!this.elements.libraryList) return;
         const libraryListStatus = document.getElementById('libraryListStatus');
         if (libraryListStatus) libraryListStatus.textContent = 'Loading library items...';
 
         this.showSpinner(this.elements.libraryList, true); // true to clear
 
-        // MOCK DATA for now
-        const mockLibraryItems = [
-            { id: 'lib_abc', name: 'My First Podcast Episode', type: 'Processed Audio', download_url: `${this.API_BASE_URL}/audio/download/job_123` , original_job_id: 'job_123', created_at: new Date().toISOString()},
-            { id: 'lib_def', name: 'Another Great Clip', type: 'Processed Audio', download_url: `${this.API_BASE_URL}/audio/download/job_xyz`, original_job_id: 'job_xyz', created_at: new Date().toISOString() }
-        ];
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-
         try {
-            // const response = await fetch(`${this.API_BASE_URL}/library`); // Adjust to your actual endpoint
-            // if (!response.ok) throw new Error(`Failed to fetch library items: ${response.statusText}`);
-            // const items = await response.json();
+            const response = await fetch(`${this.API_BASE_URL}/library`);
+            const items = await response.json();
+            if (!response.ok) throw new Error(items.detail || response.statusText);
 
-            const items = mockLibraryItems; // Using mock data
+            this.hideSpinner(this.elements.libraryList);
+            if (!items || items.length === 0) {
+                this.elements.libraryList.innerHTML = '<li>No media found in the library.</li>';
+                if (libraryListStatus) libraryListStatus.textContent = 'No media found in the library.';
+                return;
+            }
+
+            this.elements.libraryList.innerHTML = ''; // Clear spinner
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.setAttribute('role', 'listitem');
+
+                const idSpan = document.createElement('span');
+                idSpan.className = 'lib-field lib-id';
+                idSpan.innerHTML = `<strong>ID:</strong> ${item.job_id}`;
+
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'lib-field lib-type';
+                typeSpan.innerHTML = `<strong>Type:</strong> ${item.job_type}`;
+
+                const pathSpan = document.createElement('span');
+                pathSpan.className = 'lib-field lib-path';
+                pathSpan.innerHTML = `<strong>Path:</strong> ${item.output_file_path}`;
+
+                const actionsSpan = document.createElement('span');
+                actionsSpan.className = 'lib-field lib-actions';
+                const downloadLink = document.createElement('a');
+                downloadLink.href = item.download_url;
+                downloadLink.target = '_blank';
+                downloadLink.textContent = 'Download';
+                actionsSpan.innerHTML = `<strong>Actions:</strong> `;
+                actionsSpan.appendChild(downloadLink);
+
+                li.appendChild(idSpan);
+                li.appendChild(typeSpan);
+                li.appendChild(pathSpan);
+                li.appendChild(actionsSpan);
+                this.elements.libraryList.appendChild(li);
+            });
 
             this.hideSpinner(this.elements.libraryList);
             if (!items || items.length === 0) {

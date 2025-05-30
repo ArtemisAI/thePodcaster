@@ -1,0 +1,7 @@
+fix: resolve rebase conflicts, clean routers imports
+
+* Removed merge conflict markers from `backend/app/main.py` & `ROADMAP.md`.
+* Re-wrote `backend/app/main.py` so it only imports routers present in repo.
+* Added start-up checks & documentation clarifications.
+* Updated Milestone 7 entries in `ROADMAP.md`, mark tasks as *Deferred*.
+* Added changelog entry & TODO for missing video/library routes.
