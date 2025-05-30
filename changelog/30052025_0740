@@ -1,0 +1,13 @@
+Add media library and video generation API endpoints.
+
+This commit introduces new API endpoints for managing a media library and generating waveform videos from audio files.  It creates two new route files, routes_library.py and routes_video.py, and includes basic file uploads for audio.
+
+Changes
+Creation of backend/app/api/routes_library.py: Defines endpoints for listing and downloading media library items. The library items are completed processing jobs.
+Creation of backend/app/api/routes_video.py: Defines endpoints for triggering, checking status, and downloading waveform video generation jobs. It uses Celery to process video generation asynchronously.
+Addition of two new audio files in the data/preloaded_test_files directory.
+Impact
+Introduces new API functionality for managing media and generating videos.
+routes_library.py depends on ProcessingJob model, database session, and storage utilities.
+routes_video.py depends on ProcessingJob model, database session, storage utilities, and generate_video_task Celery task.
+No breaking changes are apparent from the diff alone.
