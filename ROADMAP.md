@@ -22,7 +22,7 @@ Deliverable: `docker compose up` results in a running FastAPI container returnin
 
 | ID | Task | Est. | Notes |
 |----|------|------|-------|
-|B1|POST `/audio/upload` endpoint with multipart support|1d|Implemented. Files saved to session-specific dirs. APIs for listing sessions, files within sessions, downloading originals, and deleting sessions now exist.|
+|B1|POST `/audio/upload` endpoint with multipart support|1d|Implemented. Files saved to session-specific dirs. APIs for listing sessions, files within sessions, downloading originals, and deleting sessions now exist. **2025-05-30**: Fixed Nginx proxy configuration that caused `502` on `/api/audio/upload`.|
 |B2|Define Celery tasks for `merge_tracks`, `normalize_volume`, etc.|1d|FFmpeg wrapper|
 |B3|Persist job status in Postgres (SQLModel)|0.5d|Implemented. `ProcessingJob` model used. APIs for listing/deleting processed files (job outputs) exist.|
 |B4|Send progress updates over WebSocket (FastAPI)|1d|Deferred or Future Enhancement.|

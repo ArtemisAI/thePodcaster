@@ -1,0 +1,1 @@
+I changed frontend/nginx.conf to remove the variable part of proxy_pass, which fixes "no resolver defined to resolve backend" and 502 errors on the upload endpoint. Updated ROADMAP.md entry B1 to reflect the fix.
