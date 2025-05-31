@@ -16,6 +16,9 @@ node_modules/
 
 # Docker
 *.log
+# Ignore log folders
+/logs/
+/backend/logs/
 
 # OS
 .DS_Store

@@ -11,10 +11,11 @@
         <h1>The Podcaster</h1>
     </header>
     <nav role="navigation" aria-label="Main navigation">
-        <button data-view="uploadView" aria-controls="uploadView">Upload Audio</button>
-        <button data-view="jobsView" aria-controls="jobsView">View Jobs</button>
-        <button data-view="libraryView" aria-controls="libraryView">Media Library</button>
-        <button data-view="visualizationView" aria-controls="visualizationView">Visualizations</button>
+        <!-- Explicitly set type="button" so the buttons never attempt to submit the surrounding page -->
+        <button type="button" data-view="uploadView" aria-controls="uploadView">Upload Audio</button>
+        <button type="button" data-view="jobsView" aria-controls="jobsView">View Jobs</button>
+        <button type="button" data-view="libraryView" aria-controls="libraryView">Media Library</button>
+        <button type="button" data-view="visualizationView" aria-controls="visualizationView">Visualizations</button>
     </nav>
     <main role="main">
         <section id="uploadView" class="view" aria-labelledby="uploadViewHeading" style="display:none;" aria-hidden="true">

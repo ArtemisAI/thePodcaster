@@ -5,3 +5,19 @@ fix: resolve rebase conflicts, clean routers imports
 * Added start-up checks & documentation clarifications.
 * Updated Milestone 7 entries in `ROADMAP.md`, mark tasks as *Deferred*.
 * Added changelog entry & TODO for missing video/library routes.
+
+---
+
+chore: improve navigation behaviour, logging infrastructure & docs
+
+* Change navigation buttons in `frontend/index.html` to `type="button"` to
+  prevent accidental form submissions that resulted in "click does nothing"
+  issues on certain browsers.
+* Ensure a dedicated `logs/` directory exists and exclude it (and
+  `backend/logs/`) from Git & Docker contexts for cleaner images.
+* Add `.dockerignore` with sensible defaults to speed up `docker build`.
+* Create `docs/upload_logic.md` – explains the full upload & processing flow.
+* Update `ROADMAP.md` (Milestone G4 now *Planned*) and add new TODO items for
+  WebSocket progress, auth, virus scan, and E2E tests.
+* Changelog entry `30062025_frontend_nav_buttons_and_docs.txt` summarises these
+  changes.

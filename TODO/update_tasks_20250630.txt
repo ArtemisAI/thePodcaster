@@ -1,0 +1,6 @@
+- Ensure WebSocket progress updates for long-running background jobs (Roadmap
+  item G4).
+- Implement per-user authentication & authorisation once Keycloak (or similar)
+  is integrated.
+- Automate virus scanning of uploaded files before they are persisted.
+- Add E2E Cypress tests covering the front-end upload workflow.

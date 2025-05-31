@@ -83,7 +83,7 @@ Deliverable: MP4/WEBM video ready for YouTube.
 |G1|Spin up React + Vite app (Deferred)|1d|Original plan postponed – simple HTML/JS frontend currently used.|
 |G2|Integrate AudioMass as React component (Deferred)|1d|Will resume once React base exists.|
 |G3|Implement pages: Library, Editor, Jobs, Settings (Deferred)|2d|APIs ready – UI deferred.|
-|G4|Socket-based job progress (Deferred)|1d|Depends on WebSocket infra.|
+|G4|Socket-based job progress (Planned)|1d|Backend events will push real-time job updates; see TODO/update_tasks_20250630.txt|
 
 ---
 

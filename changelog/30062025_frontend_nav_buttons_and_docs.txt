@@ -1,0 +1,7 @@
+I changed the navigation buttons in `frontend/index.html` to explicitly use
+`type="button"` to stop the browser treating them as implicit submit buttons
+inside forms, which occasionally caused *no-action* clicks.  I also added a
+dedicated `logs/` directory (and updated `.gitignore` / `.dockerignore`) so
+that runtime information is always captured for debugging.  Finally, a new
+document `docs/upload_logic.md` explains the full front-to-back upload and
+processing pipeline.
