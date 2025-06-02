@@ -3,7 +3,11 @@
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship # Import relationship
+
 from app.db.base import Base
+# Import ProcessingJob for the relationship typing, if not already implicitly handled by string reference.
+# from app.models.job import ProcessingJob # Usually not needed if using string reference "ProcessingJob"
 
 
 class Transcript(Base):
@@ -21,3 +25,6 @@ class Transcript(Base):
     srt_content = Column(Text, nullable=True, comment="The transcript in SubRip (SRT) format, including timestamps.")
     language = Column(String(50), nullable=True, comment="The detected language of the audio (e.g., 'en', 'es').")
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, comment="Timestamp of when the transcript record was created.")
+
+    # Relationship to ProcessingJob
+    job = relationship("ProcessingJob", back_populates="transcripts")

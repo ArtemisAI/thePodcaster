@@ -1,5 +1,5 @@
 - Ensure WebSocket progress updates for long-running background jobs (Roadmap
-  item G4).
+  item G4). A detailed plan is available in `docs/websocket_integration_plan.md`.
 - Implement per-user authentication & authorisation once Keycloak (or similar)
   is integrated.
 - Automate virus scanning of uploaded files before they are persisted.

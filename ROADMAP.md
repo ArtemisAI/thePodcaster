@@ -24,9 +24,9 @@ Deliverable: `docker compose up` results in a running FastAPI container returnin
 |----|------|------|-------|
 |B1|POST `/audio/upload` endpoint with multipart support|1d|Implemented. Files saved to session-specific dirs. APIs for listing sessions, files within sessions, downloading originals, and deleting sessions now exist. **2025-05-30**: Fixed Nginx proxy configuration that caused `502` on `/api/audio/upload`.|
 |B2|Define Celery tasks for `merge_tracks`, `normalize_volume`, etc.|1d|FFmpeg wrapper|
-|B3|Persist job status in Postgres (SQLModel)|0.5d|Implemented. `ProcessingJob` model used. APIs for listing/deleting processed files (job outputs) exist.|
-|B4|Send progress updates over WebSocket (FastAPI)|1d|Deferred or Future Enhancement.|
-|B5|Enhanced File Management APIs|N/A|Implemented. Includes: listing upload sessions, files within sessions; downloading original uploaded files; deleting upload sessions; listing processed/completed job outputs; deleting processed job outputs; managing a separate 'outputs' directory with list, download, delete APIs.|
+|B3|Persist job status in Postgres (SQLModel)|0.5d|Implemented. `ProcessingJob` model used. APIs for listing/deleting processed files (job outputs) exist. The new Media Library API (`/api/library`) provides enhanced, paginated access to completed jobs and their related artifacts (transcripts, LLM suggestions).|
+|B4|Send progress updates over WebSocket (FastAPI)|1d|Planned. See `docs/websocket_integration_plan.md` for detailed strategy.|
+|B5|Enhanced File Management APIs|N/A|Implemented. Includes: listing upload sessions, files within sessions; downloading original uploaded files; deleting upload sessions; listing processed/completed job outputs; deleting processed job outputs; managing a separate 'outputs' directory with list, download, delete APIs. Complemented by the new Media Library API for browsing final outputs.|
 |B6|Robust Logging and Startup Checks|N/A|Implemented. Logging to `backend/logs/app.log` with rotation. Startup checks for existence and writability of uploads, processed, outputs, and log directories.|
 |B7|Configurable per-file upload size limit & graceful 413 errors|N/A|Implemented in `routes_audio.py`, `config.py`, Docker & Nginx. Environment variable: `MAX_UPLOAD_SIZE_MB`.|
 
@@ -82,8 +82,8 @@ Deliverable: MP4/WEBM video ready for YouTube.
 |----|------|------|-------|
 |G1|Spin up React + Vite app (Deferred)|1d|Original plan postponed – simple HTML/JS frontend currently used.|
 |G2|Integrate AudioMass as React component (Deferred)|1d|Will resume once React base exists.|
-|G3|Implement pages: Library, Editor, Jobs, Settings (Deferred)|2d|APIs ready – UI deferred.|
-|G4|Socket-based job progress (Planned)|1d|Backend events will push real-time job updates; see TODO/update_tasks_20250630.txt|
+|G3|Implement pages: Library, Editor, Jobs, Settings (Deferred)|2d|APIs ready – UI deferred. The new `/api/library` backend API provides data for the Library page.|
+|G4|Socket-based job progress (Planned)|1d|Planned. Detailed strategy outlined in `docs/websocket_integration_plan.md`. See also B4.|
 
 ---
 

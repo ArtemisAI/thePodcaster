@@ -7,8 +7,10 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship # Import relationship
 
 from app.db.base import Base
+# from app.models.job import ProcessingJob # Usually not needed if using string reference
 
 
 class LLMSuggestion(Base):
@@ -30,6 +32,9 @@ class LLMSuggestion(Base):
     suggested_summary: Optional[str] = Column(Text, nullable=True)
 
     created_at: datetime = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    # Relationship to ProcessingJob
+    job = relationship("ProcessingJob", back_populates="llm_suggestions_collection")
 
     # ------------------------------------------------------------------
     # Convenience helpers

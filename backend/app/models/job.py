@@ -10,9 +10,12 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, Enum as SAEnum, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum as SAEnum, Integer, String, Text, ForeignKey
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.models.transcript import Transcript # Assuming this is the correct path
+from app.models.llm import LLMSuggestion # Assuming this is the correct path
 
 
 class JobStatus(str, Enum):
@@ -49,6 +52,10 @@ class ProcessingJob(Base):
     # Fields for LLM suggestions
     generated_title: Optional[str] = Column(String(255), nullable=True)
     generated_summary: Optional[str] = Column(Text, nullable=True)
+
+    # Relationships
+    transcripts = relationship("Transcript", back_populates="job")
+    llm_suggestions_collection = relationship("LLMSuggestion", back_populates="job")
 
     # Helper to convert enum to plain string for JSON responses
     @property

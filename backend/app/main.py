@@ -7,11 +7,9 @@ This module
 4. performs a few start-up sanity checks (log directory, data locations
    writable, …).
 
-The *upstream* branch referenced additional routers (``routes_video`` and
-``routes_library``).  Those files are **not** present in the local code-base; if
-we tried to import them the application would crash at start-up.  Until the
-corresponding modules are added we purposefully omit these imports so that the
-code runs successfully.
+This module previously noted `routes_video` and `routes_library` as potentially
+missing based on upstream comments. `routes_video` was already integrated, and
+`routes_library` has now been added and integrated.
 """
 
 from __future__ import annotations
@@ -47,6 +45,7 @@ from app.api import (
     routes_transcription,
     routes_hooks, # Added for File Browser webhooks
     routes_video, # Added for Video Generation
+    routes_library, # Added for Media Library functionality
 )
 
 
@@ -159,6 +158,7 @@ def create_app() -> FastAPI:  # noqa: D401 – factory nomenclature is fine
     app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"])
     app.include_router(routes_hooks.router, prefix="/api/hooks", tags=["hooks"]) # Added for File Browser webhooks
     app.include_router(routes_video.router, prefix="/api/video", tags=["video"]) # Added for Video Generation
+    app.include_router(routes_library.router, prefix="/api/library", tags=["library"])
 
     # ------------------------------------------------------------------
     # Ensure DB schema exists (development convenience only).

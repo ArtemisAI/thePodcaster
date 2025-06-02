@@ -1,3 +1,8 @@
+DONE: `routes_library.py` has been added (see relevant commits for implementation details).
+`routes_video.py` was already present and integrated.
+Both are now included in `backend/app/main.py`.
+
+Original Text (for history):
 PLACEHOLDER – add `routes_video.py` and `routes_library.py` in
 `backend/app/api` following the pattern of existing routers once the
 corresponding services are developed.  Update `backend/app/main.py` imports
