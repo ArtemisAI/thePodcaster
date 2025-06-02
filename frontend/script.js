@@ -43,6 +43,7 @@ const App = {
             button.addEventListener('click', () => this.showView(button.dataset.view));
         });
         
+        /* START: Comment out old upload form logic in init()
         if (this.elements.uploadForm) {
             this.elements.uploadForm.addEventListener('submit', this.handleUploadAndProcess.bind(this));
             // Add input event listeners for validation
@@ -51,6 +52,7 @@ const App = {
             });
             this.updateSubmitButtonState(); // Initial state
         }
+        END: Comment out old upload form logic in init() */
 
         // Add listeners for refresh buttons if they exist
         const refreshJobsBtn = document.getElementById('refreshJobsBtn');
@@ -139,6 +141,7 @@ const App = {
         if (spinner) spinner.remove();
     },
 
+    /* START: Comment out validateFileInput, clearValidationFeedback, updateSubmitButtonState, handleUploadAndProcess
     validateFileInput: function(inputElement) {
         if (!inputElement || !inputElement.files || inputElement.files.length === 0) {
             this.clearValidationFeedback(inputElement);
@@ -287,6 +290,7 @@ const App = {
             this.updateSubmitButtonState(); 
         }
     },
+    END: Comment out validateFileInput, clearValidationFeedback, updateSubmitButtonState, handleUploadAndProcess */
 
     fetchJobs: async function() {
         if (!this.elements.jobsList) return;

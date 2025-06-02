@@ -49,19 +49,46 @@ def temp_audio_file(tmp_path: Path) -> Path:
     file_path.write_text("dummy audio content") # Create a dummy file
     return file_path
 
+import subprocess # Added for generating valid audio file
+
+@pytest.fixture
+def temp_valid_audio_file(tmp_path: Path) -> Path: # Renamed for clarity
+    file_path = tmp_path / "test_silent_audio.wav"
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-f", "lavfi",
+                "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+                "-t", "0.1", # 0.1 seconds duration
+                str(file_path),
+            ],
+            check=True,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        pytest.fail("ffmpeg command not found. Ensure ffmpeg is installed and in PATH.")
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"ffmpeg command failed to create dummy audio file: {e.stderr.decode() if e.stderr else str(e)}")
+
+    if not file_path.exists() or file_path.stat().st_size == 0:
+        pytest.fail(f"Failed to create a valid dummy audio file at {file_path}")
+
+    return file_path
+
 @pytest.fixture
 def temp_output_dir(tmp_path: Path) -> Path:
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     return output_dir
 
-def test_merge_and_normalize_single_file(mock_ffmpeg_methods, temp_audio_file: Path, temp_output_dir: Path):
+def test_merge_and_normalize_single_file(mock_ffmpeg_methods, temp_valid_audio_file: Path, temp_output_dir: Path): # Use new fixture
     output_path = temp_output_dir / "normalized.mp3"
     
-    result_path = merge_and_normalize_audio([temp_audio_file], output_path)
+    result_path = merge_and_normalize_audio([temp_valid_audio_file], output_path)
     
     assert result_path == output_path
-    mock_ffmpeg_methods["input"].assert_called_once_with(str(temp_audio_file))
+    mock_ffmpeg_methods["input"].assert_called_once_with(str(temp_valid_audio_file))
     
     # Check that loudnorm filter was applied
     # The actual call might be ffmpeg.filter(mock_input_instance, 'loudnorm', ...) 
@@ -76,14 +103,18 @@ def test_merge_and_normalize_single_file(mock_ffmpeg_methods, temp_audio_file: P
     mock_ffmpeg_methods["concat"].assert_not_called() # Should not be called for single file
 
 
-def test_merge_and_normalize_multiple_files(mock_ffmpeg_methods, temp_audio_file: Path, temp_output_dir: Path):
+def test_merge_and_normalize_multiple_files(mock_ffmpeg_methods, temp_valid_audio_file: Path, temp_output_dir: Path): # Use new fixture
     # Create more dummy files for testing merge
-    intro_file = temp_audio_file.parent / "intro.mp3"
-    intro_file.write_text("intro content")
-    outro_file = temp_audio_file.parent / "outro.mp3"
-    outro_file.write_text("outro content")
+    # For simplicity, we'll use the same valid audio file multiple times,
+    # or create new ones if distinct content matters (it doesn't for ffmpeg structure testing).
+    intro_file = temp_valid_audio_file.parent / "intro_silent.wav"
+    outro_file = temp_valid_audio_file.parent / "outro_silent.wav"
     
-    input_files = [intro_file, temp_audio_file, outro_file]
+    # Create copies or new silent files for intro/outro
+    subprocess.run(["cp", str(temp_valid_audio_file), str(intro_file)], check=True)
+    subprocess.run(["cp", str(temp_valid_audio_file), str(outro_file)], check=True)
+
+    input_files = [intro_file, temp_valid_audio_file, outro_file]
     output_path = temp_output_dir / "merged_normalized.mp3"
     
     result_path = merge_and_normalize_audio(input_files, output_path)
@@ -93,7 +124,7 @@ def test_merge_and_normalize_multiple_files(mock_ffmpeg_methods, temp_audio_file
     # Check ffmpeg.input calls
     assert mock_ffmpeg_methods["input"].call_count == len(input_files)
     mock_ffmpeg_methods["input"].assert_any_call(str(intro_file))
-    mock_ffmpeg_methods["input"].assert_any_call(str(temp_audio_file))
+    mock_ffmpeg_methods["input"].assert_any_call(str(temp_valid_audio_file))
     mock_ffmpeg_methods["input"].assert_any_call(str(outro_file))
     
     # Check ffmpeg.concat call
@@ -109,7 +140,7 @@ def test_merge_and_normalize_multiple_files(mock_ffmpeg_methods, temp_audio_file
     mock_ffmpeg_methods["run"].assert_called_once()
 
 
-def test_merge_and_normalize_ffmpeg_error(mock_ffmpeg_methods, temp_audio_file: Path, temp_output_dir: Path):
+def test_merge_and_normalize_ffmpeg_error(mock_ffmpeg_methods, temp_valid_audio_file: Path, temp_output_dir: Path): # Use new fixture
     output_path = temp_output_dir / "error_output.mp3"
     
     # Simulate ffmpeg.run raising an error
@@ -126,7 +157,7 @@ def test_merge_and_normalize_ffmpeg_error(mock_ffmpeg_methods, temp_audio_file: 
     # For now, ensuring the error propagates is the main goal.
 
 
-def test_merge_and_normalize_input_file_not_found(temp_output_dir: Path):
+def test_merge_and_normalize_input_file_not_found(temp_output_dir: Path): # This test doesn't use the audio file fixture
     non_existent_file = Path("/path/to/non_existent_audio.mp3")
     output_path = temp_output_dir / "output.mp3"
     

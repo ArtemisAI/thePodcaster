@@ -2,20 +2,21 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock, call, ANY
 from pathlib import Path
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile # Import UploadFile for potential type hints if needed
+from fastapi.testclient import TestClient # For type hint
 
 # Assuming app is created via create_app() in main.py or similar for testing context
 # If your main.py directly creates 'app = FastAPI()', this import is fine.
-from backend.app.main import app
+# from backend.app.main import app # Removed - app comes via fixture from conftest.py
 # If ALLOWED_EXTENSIONS is defined in routes_audio, better to import it to keep tests in sync
 from backend.app.api.routes_audio import ALLOWED_EXTENSIONS
 
 
-client = TestClient(app)
+# client = TestClient(app) # Removed - client comes via fixture from conftest.py
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_audio_main_track_success(mock_save_file):
+def test_upload_audio_main_track_success(mock_save_file, client: TestClient): # Added client fixture
     mock_session_id = "mock_session_main_only"
     # Mock uuid.uuid4() to control session_id
     with patch("backend.app.api.routes_audio.uuid.uuid4", return_value=MagicMock(hex=mock_session_id, __str__=lambda: mock_session_id)):
@@ -40,7 +41,7 @@ def test_upload_audio_main_track_success(mock_save_file):
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_audio_all_tracks_success(mock_save_file):
+def test_upload_audio_all_tracks_success(mock_save_file, client: TestClient): # Added client fixture
     mock_session_id = "mock_session_all_tracks"
     with patch("backend.app.api.routes_audio.uuid.uuid4", return_value=MagicMock(hex=mock_session_id, __str__=lambda: mock_session_id)):
         # Define different return values for each call
@@ -79,7 +80,7 @@ def test_upload_audio_all_tracks_success(mock_save_file):
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file") # Keep patch even if not called for consistency
-def test_upload_audio_disallowed_extension_main_track(mock_save_file):
+def test_upload_audio_disallowed_extension_main_track(mock_save_file, client: TestClient): # Added client fixture
     files = {"main_track": ("test_main.txt", b"some text data", "text/plain")}
     response = client.post("/api/audio/upload", files=files)
     
@@ -94,7 +95,7 @@ def test_upload_audio_disallowed_extension_main_track(mock_save_file):
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_audio_disallowed_extension_optional_track(mock_save_file):
+def test_upload_audio_disallowed_extension_optional_track(mock_save_file, client: TestClient): # Added client fixture
     # Main track is fine, intro is not. Validation should prevent any saves.
     files = {
         "main_track": ("test_main.mp3", b"main audio", "audio/mpeg"),
@@ -111,7 +112,7 @@ def test_upload_audio_disallowed_extension_optional_track(mock_save_file):
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_audio_save_fails_on_main_track(mock_save_file):
+def test_upload_audio_save_fails_on_main_track(mock_save_file, client: TestClient): # Added client fixture
     mock_session_id = "mock_session_fail_main"
     with patch("backend.app.api.routes_audio.uuid.uuid4", return_value=MagicMock(hex=mock_session_id, __str__=lambda: mock_session_id)):
         # Simulate save_uploaded_file raising an Exception (like IOError)
@@ -132,7 +133,7 @@ def test_upload_audio_save_fails_on_main_track(mock_save_file):
 
 
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_audio_save_fails_on_optional_track(mock_save_file):
+def test_upload_audio_save_fails_on_optional_track(mock_save_file, client: TestClient): # Added client fixture
     mock_session_id = "mock_session_fail_optional"
     with patch("backend.app.api.routes_audio.uuid.uuid4", return_value=MagicMock(hex=mock_session_id, __str__=lambda: mock_session_id)):
         
@@ -169,7 +170,7 @@ def test_upload_audio_save_fails_on_optional_track(mock_save_file):
 
 # Test for filename missing on an optional track (if provided)
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_optional_track_no_filename(mock_save_file):
+def test_upload_optional_track_no_filename(mock_save_file, client: TestClient): # Added client fixture
     mock_session_id = "mock_session_no_filename"
     with patch("backend.app.api.routes_audio.uuid.uuid4", return_value=MagicMock(hex=mock_session_id, __str__=lambda: mock_session_id)):
         # Main track is okay for this test's purpose before validation fails for intro
@@ -198,7 +199,7 @@ def test_upload_optional_track_no_filename(mock_save_file):
 
 # Test for filename missing on the required main_track
 @patch("backend.app.api.routes_audio.save_uploaded_file")
-def test_upload_main_track_no_filename(mock_save_file):
+def test_upload_main_track_no_filename(mock_save_file, client: TestClient): # Added client fixture
     main_file_mock = MagicMock()
     main_file_mock.filename = None
     main_file_mock.file = b"some main data"
@@ -213,5 +214,3 @@ def test_upload_main_track_no_filename(mock_save_file):
     assert "detail" in data
     assert "main track file is invalid (no filename)" in data["detail"].lower()
     mock_save_file.assert_not_called()
-
-```

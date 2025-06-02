@@ -24,22 +24,40 @@ class JobStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class JobType(str, Enum):
+    """Enum for different types of processing jobs."""
+    AUDIO_CONCATENATION = "audio_concatenation" # Example existing type
+    VIDEO_GENERATION = "video_generation"   # Example existing type
+    TRANSCRIPTION = "transcription"
+    LLM_SUGGESTION = "llm_suggestion"
+    FILEBROWSER_AUDIO_UPLOAD = "filebrowser_audio_upload" # New type
+    # Add other job types as needed
+
+
 class ProcessingJob(Base):
     """Persistent representation of a background processing job."""
 
     __tablename__ = "processing_jobs"
 
     id: int = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    job_type: str = Column(String(50), nullable=False)
+    job_type: JobType = Column(SAEnum(JobType), nullable=False) # Changed to use JobType enum
     status: JobStatus = Column(SAEnum(JobStatus), nullable=False, default=JobStatus.PENDING)
     output_file_path: Optional[str] = Column(String(255), nullable=True)
     error_message: Optional[str] = Column(Text, nullable=True)
     created_at: datetime = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
+    # Fields for LLM suggestions
+    generated_title: Optional[str] = Column(String(255), nullable=True)
+    generated_summary: Optional[str] = Column(Text, nullable=True)
+
     # Helper to convert enum to plain string for JSON responses
     @property
-    def status_str(self) -> str:
-        return self.status.value if isinstance(self.status, JobStatus) else str(self.status)
+    def status_str(self) -> str: # type: ignore
+        return self.status.value if isinstance(self.status, JobStatus) else str(self.status) # type: ignore
+
+    @property
+    def job_type_str(self) -> str: # type: ignore
+        return self.job_type.value if isinstance(self.job_type, JobType) else str(self.job_type) # type: ignore
 
 
 # The model is imported by Alembic / application start-up.  No run-time code here.

@@ -23,6 +23,8 @@ services:
       - ./data:/data  # audio/video artifacts
       - ./test/Intro_Outro_test.mp3:/data/preloaded_test_files/Intro_Outro_test.mp3:ro
       - ./test/Main_Audio_test.wav:/data/preloaded_test_files/Main_Audio_test.wav:ro
+      - ./data/fb_uploads:/fb_uploads:ro # Mount for read-only access by backend
+      - ./logs:/app/logs # ensure logs directory is explicitly mounted
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
@@ -35,6 +37,8 @@ services:
     depends_on:
       - db
       - broker
+    networks: # Add backend to the network
+      - podcaster_network
 
   # ---------------------------------------------------------------------------
   # Celery worker – background heavy-lifting (FFmpeg, Whisper, etc.)
@@ -57,6 +61,8 @@ services:
     depends_on:
       - broker
       - db
+    networks: # Add worker to the network
+      - podcaster_network
 
   # ---------------------------------------------------------------------------
   # Database – PostgreSQL 15
@@ -71,6 +77,8 @@ services:
       POSTGRES_PASSWORD: podcaster
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks: # Add db to the network
+      - podcaster_network
 
   # ---------------------------------------------------------------------------
   # Redis – broker & result backend
@@ -79,6 +87,8 @@ services:
     image: redis:7-alpine
     container_name: podcaster-redis
     restart: unless-stopped
+    networks: # Add broker to the network
+      - podcaster_network
 
   # ---------------------------------------------------------------------------
   # Ollama – local LLM server (CPU or GPU)
@@ -109,6 +119,8 @@ services:
  #      - n8n_data:/home/node/.n8n
  #    depends_on:
  #      - db
+ #    networks: # Add n8n to the network (when uncommented)
+ #      - podcaster_network
 
   # ---------------------------------------------------------------------------
   # Front-end – placeholder Nginx serving AudioMass static build
@@ -121,8 +133,67 @@ services:
     volumes:
       - ./frontend:/usr/share/nginx/html:ro # Static front-end SPA
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Custom proxy & upload limits
+    networks: # Add frontend to the network
+      - podcaster_network
 
+  # ---------------------------------------------------------------------------
+  # File Browser – web UI for managing files
+  # ---------------------------------------------------------------------------
+  filebrowser:
+    image: filebrowser/filebrowser:v2.32.0
+    container_name: podcaster-filebrowser
+    restart: unless-stopped
+    volumes:
+      - ./data/fb_uploads:/srv
+      - ./filebrowser.db:/database.db
+      - ./filebrowser_settings.json:/.filebrowser.json
+    ports:
+      - "3006:80"
+    user: "1000:1000"
+    networks:
+      - podcaster_network
+    depends_on:
+      - backend # For webhook
+      - filebrowser_config_gen # Ensure config files are "managed" by compose
+
+  # ---------------------------------------------------------------------------
+  # File Browser Config Generator - one-shot service to "initialize"
+  # ---------------------------------------------------------------------------
+  filebrowser_config_gen:
+    image: alpine/git # Small image with shell, can use busybox too
+    container_name: podcaster-filebrowser-config-gen
+    command: |
+      sh -c "
+        echo 'Ensuring File Browser config directory and files structure...'
+        mkdir -p /config_target/data/fb_uploads
+        touch /config_target/filebrowser.db
+        if [ ! -f /config_target/filebrowser_settings.json ]; then
+          echo 'Filebrowser settings not found, creating default.'
+          # This default is minimal, actual config is mounted from host by filebrowser service
+          echo '{}' > /config_target/filebrowser_settings.json
+        else
+          echo 'Filebrowser settings already exists.'
+        fi
+        echo 'File Browser config generation step finished.'
+      "
+    volumes:
+      - ./:/config_target # Mount project root to access/create files
+    # This service runs, performs its action, and exits.
+    # It's a way to codify the creation of these files within compose lifecycle,
+    # though manual creation outside compose is also fine and often simpler.
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  podcaster_network:
+    driver: bridge
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
 volumes:
   pgdata:
   ollama_models:
   n8n_data:
+  # logs_data: # if logs are managed by a named volume; ./logs is a bind mount for now

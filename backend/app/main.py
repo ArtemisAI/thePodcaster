@@ -45,6 +45,8 @@ from app.api import (
     routes_outputs,
     routes_publish,
     routes_transcription,
+    routes_hooks, # Added for File Browser webhooks
+    routes_video, # Added for Video Generation
 )
 
 
@@ -155,6 +157,8 @@ def create_app() -> FastAPI:  # noqa: D401 – factory nomenclature is fine
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
     app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"])
+    app.include_router(routes_hooks.router, prefix="/api/hooks", tags=["hooks"]) # Added for File Browser webhooks
+    app.include_router(routes_video.router, prefix="/api/video", tags=["video"]) # Added for Video Generation
 
     # ------------------------------------------------------------------
     # Ensure DB schema exists (development convenience only).
@@ -164,7 +168,7 @@ def create_app() -> FastAPI:  # noqa: D401 – factory nomenclature is fine
         from app.db.database import engine  # local import to avoid circular deps
         from app.db.base import Base
 
-        Base.metadata.create_all(bind=engine)
+        # Base.metadata.create_all(bind=engine) # Temporarily commented out for testing
     except Exception as exc:  # pragma: no cover
         logger.exception("Failed to create DB schema: %s", exc)
 

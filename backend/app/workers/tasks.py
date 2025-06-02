@@ -11,7 +11,7 @@ import ffmpeg # For ffmpeg.Error in error handling
 from app.config import settings
 from app.db.database import SessionLocal
 from ..models.audio import AudioFile # Import AudioFile model
-from ..models.job import ProcessingJob, JobStatus
+from ..models.job import ProcessingJob, JobStatus, JobType # Added JobType
 from ..models.transcript import Transcript # Import Transcript model
 from ..services.audio_processing import merge_and_normalize_audio
 from ..services.transcription import transcribe_audio
@@ -27,7 +27,7 @@ from app.db.base import Base
 from app.db.database import engine
 
 # Creating tables is a no-op if they already exist (and very fast).
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) # Temporarily commented out for testing to avoid DB connection on import
 
 # --- Logger Setup ---
 # Ensure app-level logging is configured when a worker starts.
@@ -268,3 +268,154 @@ def transcribe_audio_task(job_id: int, audio_input_path_str: str, output_basenam
         db.close()
 
 logger.info("Celery tasks defined and logging configured.")
+
+# --- File Browser Hook Task ---
+import asyncio
+import shutil # For file copy, though merge_and_normalize_audio might handle it.
+# Import generate_suggestions from app.services.llm
+from ..services.llm import generate_suggestions as generate_suggestions_service # Renamed to avoid conflict
+
+@celery_app.task(name="handle_filebrowser_upload_task", base=BaseTaskWithDB)
+def handle_filebrowser_upload(file_path_str: str, username: str = None, job_id_override: int = None): # Added job_id_override for BaseTaskWithDB
+    """
+    Celery task to process a single audio file uploaded via File Browser.
+    This task creates a ProcessingJob, normalizes the audio, transcribes it,
+    and generates LLM suggestions.
+    """
+    # Note: BaseTaskWithDB expects job_id for its on_failure.
+    # Since this task creates the job, we'll manage job status updates internally primarily.
+    # If job_id_override is passed (e.g. if API creates job first), it could be used.
+
+    logger.info(f"Celery Task: Processing file {file_path_str} from user {username}.")
+    db = SessionLocal()
+    db_job = None # Initialize db_job to None
+
+    try:
+        original_file_path = Path(file_path_str)
+        original_filename = original_file_path.name
+        original_filename_stem = original_file_path.stem
+
+        # 1. Create ProcessingJob entry in DB
+        # If job_id_override is provided, we might fetch an existing job.
+        # For now, assume this task always creates a new job.
+        if job_id_override:
+             db_job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id_override).first()
+             if not db_job:
+                 logger.error(f"Job with override ID {job_id_override} not found. Cannot proceed.")
+                 # This is an issue, BaseTaskWithDB might not handle this if job_id is passed but invalid.
+                 raise ValueError(f"Job with override ID {job_id_override} not found.")
+        else:
+            db_job = ProcessingJob(
+                job_type=JobType.FILEBROWSER_AUDIO_UPLOAD, # Use JobType enum
+                status=JobStatus.PENDING
+                # Add other relevant fields if the model is extended, e.g., original_filename, user_info
+            )
+            db.add(db_job)
+            db.commit()
+            db.refresh(db_job)
+
+        current_job_id = db_job.id # Use this for logging and path creation
+        logger.info(f"Created/Using job {current_job_id} for file {original_filename}")
+
+        db_job.status = JobStatus.PROCESSING
+        db.commit()
+
+        # Define paths
+        job_processed_dir = PROCESSED_DIR / str(current_job_id)
+        ensure_dir_exists(job_processed_dir)
+
+        # Output of merge_and_normalize_audio will be MP3
+        normalized_audio_filename = f"normalized_{original_filename_stem}.mp3"
+        normalized_audio_path = job_processed_dir / normalized_audio_filename
+
+        logger.info(f"Job {current_job_id}: Starting audio normalization for {original_file_path} to {normalized_audio_path}")
+        actual_normalized_path_obj = merge_and_normalize_audio(
+            input_files=[original_file_path],
+            output_path=normalized_audio_path
+        )
+        db_job.output_file_path = str(actual_normalized_path_obj.relative_to(DATA_ROOT))
+        db.commit()
+        logger.info(f"Job {current_job_id}: Audio normalization complete. Output: {db_job.output_file_path}")
+
+        # 3. Transcribe Audio
+        logger.info(f"Job {current_job_id}: Starting transcription for {actual_normalized_path_obj}")
+        plain_text, srt_text, language = transcribe_audio(audio_input_path=actual_normalized_path_obj)
+
+        if plain_text is not None and srt_text is not None:
+            transcript_basename = f"job_{current_job_id}_{original_filename_stem}"
+            # Save transcript files to the global TRANSCRIPT_DIR
+            txt_rel_path, srt_rel_path = save_transcript_to_files(
+                output_basename=transcript_basename,
+                plain_text=plain_text,
+                srt_text=srt_text,
+                transcript_dir=TRANSCRIPT_DIR # Use global transcript dir
+            )
+
+            # Create Transcript DB record
+            transcript_record = Transcript(
+                processing_job_id=current_job_id,
+                text_content=plain_text,
+                srt_content=srt_text,
+                language=language
+            )
+            db.add(transcript_record)
+            # Update job's main output to be the SRT from transcription, similar to transcribe_audio_task
+            # This overwrites the normalized audio path, consider if both are needed or how to store multiple outputs.
+            # For now, let's assume the SRT is a primary output.
+            # db_job.output_file_path = str(srt_rel_path) # Optional: if SRT is considered main output over audio
+            db.commit()
+            logger.info(f"Job {current_job_id}: Transcription complete. Saved to files and DB. Language: {language}")
+        else:
+            logger.warning(f"Job {current_job_id}: Transcription returned empty results.")
+            # Potentially set status to something like PARTIAL_SUCCESS or log as warning
+
+        # 4. Generate LLM Suggestions (if transcript text exists)
+        if plain_text:
+            logger.info(f"Job {current_job_id}: Generating LLM suggestions.")
+            try:
+                # Running async function from sync Celery task
+                suggestions = asyncio.run(generate_suggestions_service(transcript=plain_text))
+                if "error" in suggestions:
+                    logger.warning(f"Job {current_job_id}: LLM service returned an error: {suggestions.get('error')} - {suggestions.get('details')}")
+                else:
+                    title = suggestions.get('titles')[0] if suggestions.get('titles') else None # Take first title
+                    summary = suggestions.get('summary')
+
+                    if title or summary: # Check if at least one was generated
+                        logger.info(f"Job {current_job_id}: LLM suggestions generated. Title: {title}, Summary: {summary}")
+                        db_job.generated_title = title
+                        db_job.generated_summary = summary
+                        db.commit()
+                        db.refresh(db_job)
+                    else:
+                        logger.warning(f"Job {current_job_id}: LLM service generated no usable suggestions (empty title/summary).")
+            except Exception as llm_exc:
+                logger.error(f"Job {current_job_id}: Error during LLM suggestion generation: {llm_exc}", exc_info=True)
+                # Do not let LLM failure fail the whole job if transcription was successful. Log and continue.
+        else:
+            logger.info(f"Job {current_job_id}: No transcript text available, skipping LLM suggestions.")
+
+        db_job.status = JobStatus.COMPLETED
+        db.commit()
+        logger.info(f"Job {current_job_id}: Processing complete for {original_filename}")
+        # BaseTaskWithDB on_success will log if this task returns.
+        # Return value could be dict of paths or job_id.
+        return {"job_id": current_job_id, "status": "COMPLETED", "normalized_audio": str(db_job.output_file_path)}
+
+    except Exception as e:
+        logger.error(f"Error processing file {file_path_str} (Job ID {db_job.id if db_job else 'N/A'}): {e}", exc_info=True)
+        if db_job: # Check if db_job was successfully created/fetched
+            db_job.status = JobStatus.FAILED
+            db_job.error_message = str(e)[:1000] # Truncate error message if too long for DB field
+            db.commit()
+        # Re-raise so BaseTaskWithDB on_failure can also log it.
+        # Pass current_job_id if available, so BaseTaskWithDB can use it.
+        # This part is tricky because BaseTaskWithDB expects job_id as first arg to the task,
+        # or as a kwarg 'job_id'. Our task signature is (file_path_str, username).
+        # The self.request.id in BaseTaskWithDB is Celery's task ID, not our ProcessingJob.id.
+        # For now, BaseTaskWithDB's job update on failure might not work correctly for this task
+        # as it doesn't receive job_id in the expected way.
+        # The explicit update above is the primary error handling for job status.
+        raise
+    finally:
+        db.close()

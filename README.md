@@ -134,11 +134,16 @@ docker compose down
 
 ### Web Interface Usage
 
-1. Open the Frontend UI in your browser.
-2. Upload your audio files (e.g., intro.mp3, main.mp3, outro.mp3).
-3. Click **Process** to start audio processing, video generation, and transcription.
-4. Monitor job status in the interface.
-5. Download results from the UI or find generated assets in `./data`.
+1.  **Access the Frontend UI:** Open the main application interface in your browser (default: `http://localhost:3005` or your configured `FRONTEND_PORT`).
+2.  **Navigate to "Upload Audio":** In the frontend UI, select the "Upload Audio" view.
+3.  **Open File Manager:** Click the "Open File Manager" button. This will open File Browser in a new tab (default: `http://localhost:3006`).
+4.  **Login to File Manager:**
+    *   Use the default credentials: **Username:** `admin`, **Password:** `admin`.
+    *   It is strongly recommended to change these default credentials immediately after your first login via File Browser's settings interface for security.
+5.  **Upload Files:** Use the File Browser interface to upload your audio files (e.g., main episode, intro, outro segments).
+6.  **Automatic Processing:** Audio files uploaded via File Browser will be automatically detected and processed by the backend. This includes normalization, transcription, and generation of LLM suggestions (titles/summaries).
+7.  **Monitor Job Status:** Return to the Podcaster Frontend UI and navigate to the "View Jobs" or "Media Library" sections to monitor the status of processing jobs and access results.
+8.  **Download Results:** Processed files and transcripts can be downloaded from the "Media Library" or "View Jobs" section in the Podcaster UI. Raw output assets are also available in the `./data` directory on the host machine.
 
 ### API Examples
 

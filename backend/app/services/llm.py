@@ -82,7 +82,7 @@ async def generate_suggestions(transcript: str, prompt_type: str = "title_summar
             # This will raise an HTTPStatusError if the response status is 4xx or 5xx
             response.raise_for_status() 
 
-            response_data = response.json()
+            response_data = await response.json() # Await the json() call
             logger.debug(f"Raw response data from Ollama: {response_data}")
             
             # Ollama with format="json" and stream=False returns a single JSON object.

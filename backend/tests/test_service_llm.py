@@ -1,6 +1,6 @@
 import pytest
 import httpx # Import for httpx.RequestError, httpx.HTTPStatusError
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock # Added MagicMock
 import json
 
 # Import the function to test and the settings

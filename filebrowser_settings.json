@@ -1,0 +1,24 @@
+{
+    "address": "0.0.0.0",
+    "port": 80,
+    "root": "/srv",
+    "database": "/database.db",
+    "log": "stdout",
+    "auth": {
+        "method": "json",
+        "settings": {
+            "users": []
+        }
+    },
+    "branding": {
+        "name": "Podcaster File Manager",
+        "disableExternal": false,
+        "theme": "",
+        "color": ""
+    },
+    "commands": {
+        "after.Upload": [
+            "sh", "-c", "curl -X POST http://backend:8000/api/hooks/filebrowser/new-upload -H 'Content-Type: application/json' -d \"{\\\"filePath\\\": \\\"${FILE}\\\", \\\"username\\\": \\\"${USERNAME}\\\", \\\"event\\\": \\\"${TRIGGER}\\\"}\""
+        ]
+    }
+}

@@ -12,10 +12,10 @@ from backend.app.config import settings # For OLLAMA_DEFAULT_MODEL
 
 # --- Test Setup & Fixtures ---
 
-@pytest.fixture
-async def client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+# @pytest.fixture # Removed - client now comes from conftest.py
+# async def client():
+#     async with AsyncClient(app=app, base_url="http://test") as ac:
+#         yield ac
 
 # --- Test Cases ---
 
@@ -24,7 +24,7 @@ async def client():
 @patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock) # Mock the service layer
 @patch("backend.app.db.database.SessionLocal") # Mock the DB session
 async def test_suggest_from_job_success(
-    mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
+    mock_session_local, mock_generate_suggestions, mock_read_transcript, async_client: AsyncClient # Use async_client
 ):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -48,7 +48,7 @@ async def test_suggest_from_job_success(
     mock_generate_suggestions.return_value = mock_llm_response_dict
     
     prompt_type = "title_summary"
-    response = await client.post(f"/api/llm/suggest/from_job/{mock_transcription_job.id}?prompt_type={prompt_type}")
+    response = await async_client.post(f"/api/llm/suggest/from_job/{mock_transcription_job.id}?prompt_type={prompt_type}") # Use async_client
     
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -76,20 +76,20 @@ async def test_suggest_from_job_success(
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_job_job_not_found(mock_session_local, client: AsyncClient):
+async def test_suggest_from_job_job_not_found(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = None # Job not found
     mock_db_instance.query.return_value = mock_query
     
-    response = await client.post("/api/llm/suggest/from_job/999")
+    response = await async_client.post("/api/llm/suggest/from_job/999") # Use async_client
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_job_job_not_transcription(mock_session_local, client: AsyncClient):
+async def test_suggest_from_job_job_not_transcription(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     mock_video_job = ProcessingJob(id=2, job_type="video_generation", status=JobStatus.COMPLETED)
@@ -97,14 +97,14 @@ async def test_suggest_from_job_job_not_transcription(mock_session_local, client
     mock_query.filter.return_value.first.return_value = mock_video_job
     mock_db_instance.query.return_value = mock_query
 
-    response = await client.post("/api/llm/suggest/from_job/2")
+    response = await async_client.post("/api/llm/suggest/from_job/2") # Use async_client
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "not a transcription job" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_job_job_not_completed(mock_session_local, client: AsyncClient):
+async def test_suggest_from_job_job_not_completed(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     mock_pending_job = ProcessingJob(id=3, job_type="transcription", status=JobStatus.PROCESSING)
@@ -112,7 +112,7 @@ async def test_suggest_from_job_job_not_completed(mock_session_local, client: As
     mock_query.filter.return_value.first.return_value = mock_pending_job
     mock_db_instance.query.return_value = mock_query
 
-    response = await client.post("/api/llm/suggest/from_job/3")
+    response = await async_client.post("/api/llm/suggest/from_job/3") # Use async_client
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "not yet completed" in response.json()["detail"]
 
@@ -120,7 +120,7 @@ async def test_suggest_from_job_job_not_completed(mock_session_local, client: As
 @pytest.mark.asyncio
 @patch("backend.app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_transcript, client: AsyncClient):
+async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_transcript, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     mock_job = ProcessingJob(id=4, job_type="transcription", status=JobStatus.COMPLETED, output_file_path="transcripts/empty.srt")
@@ -129,7 +129,7 @@ async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_t
     mock_db_instance.query.return_value = mock_query
     mock_read_transcript.return_value = "  " # Empty or whitespace only
 
-    response = await client.post("/api/llm/suggest/from_job/4")
+    response = await async_client.post("/api/llm/suggest/from_job/4") # Use async_client
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Transcript for job 4 is empty" in response.json()["detail"]
 
@@ -137,7 +137,7 @@ async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_t
 @pytest.mark.asyncio
 @patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_text_success(mock_session_local, mock_generate_suggestions, client: AsyncClient):
+async def test_suggest_from_text_success(mock_session_local, mock_generate_suggestions, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
 
@@ -146,7 +146,12 @@ async def test_suggest_from_text_success(mock_session_local, mock_generate_sugge
     mock_llm_response = {"summary": "Direct text summary."}
     mock_generate_suggestions.return_value = mock_llm_response
     
-    response = await client.post(f"/api/llm/suggest/from_text?prompt_type={prompt_type}", content=sample_text) # Send as request body
+    # The route /api/llm/suggest/from_text expects transcript_text as a query parameter based on its signature
+    # So, using params= instead of content=
+    response = await async_client.post(
+        f"/api/llm/suggest/from_text",
+        params={"transcript_text": sample_text, "prompt_type": prompt_type}
+    )
     
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -163,7 +168,7 @@ async def test_suggest_from_text_success(mock_session_local, mock_generate_sugge
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_get_suggestion_found(mock_session_local, client: AsyncClient):
+async def test_get_suggestion_found(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     
@@ -177,7 +182,7 @@ async def test_get_suggestion_found(mock_session_local, client: AsyncClient):
     mock_query.filter.return_value.first.return_value = mock_suggestion
     mock_db_instance.query.return_value = mock_query
     
-    response = await client.get("/api/llm/suggestions/1")
+    response = await async_client.get("/api/llm/suggestions/1") # Use async_client
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["suggestion_id"] == 1
@@ -187,20 +192,20 @@ async def test_get_suggestion_found(mock_session_local, client: AsyncClient):
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_get_suggestion_not_found(mock_session_local, client: AsyncClient):
+async def test_get_suggestion_not_found(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     mock_query = MagicMock()
     mock_query.filter.return_value.first.return_value = None
     mock_db_instance.query.return_value = mock_query
 
-    response = await client.get("/api/llm/suggestions/999")
+    response = await async_client.get("/api/llm/suggestions/999") # Use async_client
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_get_suggestions_by_job_found(mock_session_local, client: AsyncClient):
+async def test_get_suggestions_by_job_found(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
 
@@ -226,7 +231,7 @@ async def test_get_suggestions_by_job_found(mock_session_local, client: AsyncCli
 
     mock_db_instance.query.side_effect = query_side_effect
     
-    response = await client.get("/api/llm/suggestions/by_job/20")
+    response = await async_client.get("/api/llm/suggestions/by_job/20") # Use async_client
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert len(data) == 2
@@ -238,7 +243,7 @@ async def test_get_suggestions_by_job_found(mock_session_local, client: AsyncCli
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_get_suggestions_by_job_job_not_found(mock_session_local, client: AsyncClient):
+async def test_get_suggestions_by_job_job_not_found(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
     
@@ -250,14 +255,14 @@ async def test_get_suggestions_by_job_job_not_found(mock_session_local, client: 
         return MagicMock()
     mock_db_instance.query.side_effect = query_side_effect_job_not_found
 
-    response = await client.get("/api/llm/suggestions/by_job/999")
+    response = await async_client.get("/api/llm/suggestions/by_job/999") # Use async_client
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Processing job with ID 999 not found" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 @patch("backend.app.db.database.SessionLocal")
-async def test_get_suggestions_by_job_no_suggestions(mock_session_local, client: AsyncClient):
+async def test_get_suggestions_by_job_no_suggestions(mock_session_local, async_client: AsyncClient): # Use async_client
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
 
@@ -274,7 +279,7 @@ async def test_get_suggestions_by_job_no_suggestions(mock_session_local, client:
         return MagicMock()
     mock_db_instance.query.side_effect = query_side_effect_no_suggestions
 
-    response = await client.get("/api/llm/suggestions/by_job/21")
+    response = await async_client.get("/api/llm/suggestions/by_job/21") # Use async_client
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == []
 
@@ -295,7 +300,7 @@ async def test_get_suggestions_by_job_no_suggestions(mock_session_local, client:
 @patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
 @patch("backend.app.db.database.SessionLocal")
 async def test_suggest_from_job_llm_service_error(
-    mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
+    mock_session_local, mock_generate_suggestions, mock_read_transcript, async_client: AsyncClient # Use async_client
 ):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -308,7 +313,7 @@ async def test_suggest_from_job_llm_service_error(
     # Simulate error from LLM service
     mock_generate_suggestions.side_effect = Exception("LLM is down")
     
-    response = await client.post("/api/llm/suggest/from_job/5")
+    response = await async_client.post("/api/llm/suggest/from_job/5") # Use async_client
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "Failed to generate LLM suggestions: LLM is down" in response.json()["detail"]
 
@@ -317,7 +322,7 @@ async def test_suggest_from_job_llm_service_error(
 @patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
 @patch("backend.app.db.database.SessionLocal")
 async def test_suggest_from_job_llm_returns_error_structure(
-    mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
+    mock_session_local, mock_generate_suggestions, mock_read_transcript, async_client: AsyncClient # Use async_client
 ):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -330,7 +335,7 @@ async def test_suggest_from_job_llm_returns_error_structure(
     # Simulate LLM service returning a dict that indicates an error
     mock_generate_suggestions.return_value = {"error": "No good suggestions", "details": "Model was tired."}
 
-    response = await client.post("/api/llm/suggest/from_job/6")
+    response = await async_client.post("/api/llm/suggest/from_job/6") # Use async_client
     assert response.status_code == status.HTTP_502_BAD_GATEWAY
     assert "Error from LLM service: Model was tired." in response.json()["detail"]
 
@@ -363,7 +368,7 @@ async def test_suggest_from_job_llm_returns_error_structure(
 @pytest.mark.asyncio
 @patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
 @patch("backend.app.db.database.SessionLocal")
-async def test_suggest_from_text_success_json_payload(mock_session_local, mock_generate_suggestions, client: AsyncClient):
+async def test_suggest_from_text_success_json_payload(mock_session_local, mock_generate_suggestions, async_client: AsyncClient): # Use async_client
     # This test assumes the endpoint /api/llm/suggest/from_text expects a JSON body
     # like {"transcript_text": "...", "prompt_type": "..."}
     # This would require changing the route signature in routes_llm.py to use Pydantic model with Body.
@@ -383,7 +388,7 @@ async def test_suggest_from_text_success_json_payload(mock_session_local, mock_g
     mock_generate_suggestions.return_value = mock_llm_response
     
     # Sending transcript_text as a query parameter
-    response = await client.post(
+    response = await async_client.post( # Use async_client
         f"/api/llm/suggest/from_text", 
         params={"transcript_text": sample_text, "prompt_type": prompt_type}
     )
@@ -394,6 +399,4 @@ async def test_suggest_from_text_success_json_payload(mock_session_local, mock_g
     assert data["summary"] == mock_llm_response["summary"]
     
     mock_generate_suggestions.assert_called_once_with(sample_text, prompt_type)
-    mock_db_instance.add.assert_called_once()`pytest` and `httpx` are in `backend/requirements.txt`, `backend/tests/test_health.py` has been reviewed, and `backend/tests/test_api_audio.py`, `backend/tests/test_service_audio.py`, and `backend/tests/test_api_llm.py` have been created.
-
-Now, I will create `backend/tests/test_service_llm.py`.
+    mock_db_instance.add.assert_called_once()

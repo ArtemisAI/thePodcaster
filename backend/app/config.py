@@ -9,6 +9,7 @@ environment management.
 """
 
 import os
+from pathlib import Path
 
 class Settings:
     """Settings helper that gracefully falls back to sane defaults.
@@ -48,9 +49,19 @@ class Settings:
     # ------------------------------------------------------------------
     MAX_UPLOAD_SIZE_MB: int = int(os.getenv('MAX_UPLOAD_SIZE_MB') or '500')
 
+    # ------------------------------------------------------------------
+    # File Browser integration
+    # ------------------------------------------------------------------
+    # Path inside the backend container where File Browser uploads are mounted
+    FILEBROWSER_INCOMING_DIR: Path = Path(os.getenv('FILEBROWSER_INCOMING_DIR') or "/fb_uploads")
+
     @property
     def max_upload_size_bytes(self) -> int:
         """Return the upload size limit in raw bytes (0 == unlimited)."""
         return 0 if self.MAX_UPLOAD_SIZE_MB == 0 else self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 settings = Settings()
+
+# Pydantic-style settings getter for FastAPI Depends
+def get_settings() -> Settings:
+    return settings
