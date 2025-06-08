@@ -15,3 +15,9 @@ A detailed analysis of the project's lifecycle, implemented features, encountere
 For a comprehensive understanding of the project's history and the reasons for its archival, please refer to the full post-mortem document:
 
 **[Full Post-Mortem Details:](./OUT/docs/post_mortem.md)**
+
+---
+
+## Revival Plan
+
+While the `/OUT` directory preserves the archived implementation, a new development roadmap is available in `ROADMAP.md`. It outlines how to rebuild the project incrementally with testing at each phase.
