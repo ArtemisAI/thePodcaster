@@ -122,6 +122,18 @@ services:
       - ./frontend:/usr/share/nginx/html:ro # Static front-end SPA
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Custom proxy & upload limits
 
+  # ---------------------------------------------------------------------------
+  # Filebrowser – simple UI to browse uploaded files
+  # ---------------------------------------------------------------------------
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: podcaster-filebrowser
+    volumes:
+      - ./data:/srv
+    ports:
+      - "8090:80"
+    restart: unless-stopped
+
 volumes:
   pgdata:
   ollama_models:

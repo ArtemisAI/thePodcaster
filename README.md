@@ -10,6 +10,7 @@ This repository contains a **local-first, fully containerised platform** that he
 4.  AI-powered transcription (Faster-Whisper).
 5.  Local LLM (Ollama) integration for suggesting titles and summaries.
 6.  Automated publishing workflows via n8n webhook triggers.
+7.  Built-in file browser for inspecting uploaded and processed files.
 
 The stack is designed to **run completely on a single workstation** while taking advantage of any NVIDIA/AMD GPU that may be available (GPU usage for Ollama/Whisper is configurable but not explicitly set up in this version). Everything is shipped through **Docker Compose** for reproducible development and deployments.
 
@@ -133,6 +134,7 @@ docker compose down
 - Swagger UI: http://localhost:8000/api/docs
 - ReDoc: http://localhost:8000/api/redoc
 - Health check: http://localhost:8000/api/health
+- File Browser: http://localhost:8090
 
 ### Web Interface Usage
 
