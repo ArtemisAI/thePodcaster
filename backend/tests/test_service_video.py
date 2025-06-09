@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock, ANY
 import ffmpeg
 
-from backend.app.services.video_processing import generate_waveform_video
+from app.services.video_processing import generate_waveform_video
 
 
 @pytest.fixture

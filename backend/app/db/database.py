@@ -6,6 +6,7 @@ Use SQLAlchemy 2.0 style async engine or SQLModel convenience.
 # pylint: disable=import-error
 # The DB helper is deliberately minimal: sync engine + classic session maker.
 
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,7 +18,9 @@ from app.db.base import Base  # Global declarative base with all models register
 # ---------------------------------------------------------------------------
 
 # Create SQLAlchemy engine
-engine = create_engine(settings.DATABASE_URL, echo=False, future=True)
+logger = logging.getLogger(__name__)
+logger.info("Creating database engine for %s", settings.DATABASE_URL.split('@')[-1])
+engine = create_engine(settings.DATABASE_URL, echo=settings.DB_ECHO, future=True)
 
 # Create a configured "SessionLocal" class
 SessionLocal = sessionmaker(
@@ -37,12 +40,9 @@ def _create_tables() -> None:  # pragma: no cover – rarely mocked in tests
 
     try:
         Base.metadata.create_all(bind=engine)
+        logger.info("Database tables ensured")
     except Exception as exc:  # broad except OK in one-off helper
-        # Log instead of re-raising – failing to create tables shouldn't crash
-        # the entire app in production; it will fail loudly during tests.
-        import logging
-
-        logging.getLogger(__name__).exception("Could not create DB tables: %s", exc)
+        logger.exception("Could not create DB tables: %s", exc)
 
 
 # Import side-effect – letting the application decide when to create tables
@@ -54,3 +54,4 @@ def get_db():
         yield db
     finally:
         db.close()
+        logger.debug("DB session closed")

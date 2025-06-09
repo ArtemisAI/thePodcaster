@@ -1,5 +1,4 @@
 from pathlib import Path
-from faster_whisper import WhisperModel
 import logging
 import time # For SRT timestamp formatting
 
@@ -24,8 +23,17 @@ def get_whisper_model():
     global _model_instance
     if _model_instance is None:
         try:
-            logger.info(f"Initializing Whisper model: Size='{MODEL_SIZE}', Device='{DEVICE_TYPE}', Compute='{COMPUTE_TYPE}'")
-            _model_instance = WhisperModel(MODEL_SIZE, device=DEVICE_TYPE, compute_type=COMPUTE_TYPE)
+            logger.info(
+                "Initializing Whisper model: Size='%s', Device='%s', Compute='%s'",
+                MODEL_SIZE,
+                DEVICE_TYPE,
+                COMPUTE_TYPE,
+            )
+            from faster_whisper import WhisperModel  # Lazy import to avoid heavy dependency unless needed
+
+            _model_instance = WhisperModel(
+                MODEL_SIZE, device=DEVICE_TYPE, compute_type=COMPUTE_TYPE
+            )
             logger.info("Whisper model initialized successfully.")
         except Exception as e:
             logger.error(f"Failed to initialize Whisper model (Size: {MODEL_SIZE}, Device: {DEVICE_TYPE}): {e}", exc_info=True)

@@ -90,6 +90,8 @@ Follow these steps to set up and run The Podcaster locally.
    ```bash
    cp .env.example .env
    ```
+   When using Neon for development, set `DATABASE_URL` to the connection string
+   provided by Neon and optionally set `DB_ECHO=1` to enable SQLAlchemy debug logs.
 3. (Optional) Pull an Ollama model for AI features:
    ```bash
    docker exec -it podcaster-ollama ollama pull llama2:7b-chat
