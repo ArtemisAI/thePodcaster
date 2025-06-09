@@ -394,6 +394,3 @@ async def test_suggest_from_text_success_json_payload(mock_session_local, mock_g
     assert data["summary"] == mock_llm_response["summary"]
     
     mock_generate_suggestions.assert_called_once_with(sample_text, prompt_type)
-    mock_db_instance.add.assert_called_once()`pytest` and `httpx` are in `backend/requirements.txt`, `backend/tests/test_health.py` has been reviewed, and `backend/tests/test_api_audio.py`, `backend/tests/test_service_audio.py`, and `backend/tests/test_api_llm.py` have been created.
-
-Now, I will create `backend/tests/test_service_llm.py`.

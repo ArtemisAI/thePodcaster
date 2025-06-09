@@ -42,9 +42,11 @@ from app.utils.storage import (
 from app.api import (
     routes_audio,
     routes_llm,
+    routes_library,
     routes_outputs,
     routes_publish,
     routes_transcription,
+    routes_video,
 )
 
 
@@ -155,6 +157,8 @@ def create_app() -> FastAPI:  # noqa: D401 – factory nomenclature is fine
     app.include_router(routes_transcription.router, prefix="/api/transcription", tags=["transcription"])
     app.include_router(routes_publish.router, prefix="/api/publish", tags=["publish"])
     app.include_router(routes_outputs.router, prefix="/api/outputs", tags=["outputs"])
+    app.include_router(routes_video.router, prefix="/api/video", tags=["video"])
+    app.include_router(routes_library.router, prefix="/api/library", tags=["library"])
 
     # ------------------------------------------------------------------
     # Ensure DB schema exists (development convenience only).

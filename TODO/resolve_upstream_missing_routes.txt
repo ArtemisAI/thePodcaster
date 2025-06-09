@@ -1,4 +1,3 @@
-PLACEHOLDER – add `routes_video.py` and `routes_library.py` in
-`backend/app/api` following the pattern of existing routers once the
-corresponding services are developed.  Update `backend/app/main.py` imports
-and router inclusion accordingly.
+2025-06-05 – Implemented `routes_video.py` and `routes_library.py` with
+basic functionality. `backend/app/main.py` now imports these routers and
+includes them under `/api/video` and `/api/library` prefixes.
