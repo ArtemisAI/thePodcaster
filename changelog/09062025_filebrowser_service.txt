@@ -1,0 +1,5 @@
+feat: add filebrowser service for uploads
+
+- Added `filebrowser` service in `docker-compose.yml` for browsing
+  uploaded and processed files.
+- Documented the service and URL in `README.md`.
