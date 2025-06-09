@@ -1,0 +1,4 @@
+- Added DB_ECHO setting for SQLAlchemy engine debugging.
+- Updated database helper with improved logging.
+- Included Neon usage notes in docs and README.
+- Provided test ensuring settings load from environment and DB connection works.

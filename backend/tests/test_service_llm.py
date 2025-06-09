@@ -4,8 +4,8 @@ from unittest.mock import patch, AsyncMock
 import json
 
 # Import the function to test and the settings
-from backend.app.services.llm import generate_suggestions, PROMPT_TEMPLATES
-from backend.app.config import settings
+from app.services.llm import generate_suggestions, PROMPT_TEMPLATES
+from app.config import settings
 
 # --- Test Cases ---
 

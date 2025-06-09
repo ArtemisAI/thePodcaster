@@ -37,6 +37,7 @@ class Settings:
     OLLAMA_URL: str = os.getenv('OLLAMA_URL') or ''
     OLLAMA_DEFAULT_MODEL: str = os.getenv('OLLAMA_DEFAULT_MODEL') or ''
     FRONTEND_PORT: int = int(os.getenv('FRONTEND_PORT') or '80')
+    DB_ECHO: bool = (os.getenv('DB_ECHO') or 'false').lower() in ('1', 'true', 'yes')
 
     # ------------------------------------------------------------------
     # File upload configuration

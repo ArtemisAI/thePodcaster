@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock, ANY
 import ffmpeg # Import the actual library to check for ffmpeg.Error
 
 # Import the function to test
-from backend.app.services.audio_processing import merge_and_normalize_audio
+from app.services.audio_processing import merge_and_normalize_audio
 
 @pytest.fixture
 def mock_ffmpeg_methods():

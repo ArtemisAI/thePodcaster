@@ -5,10 +5,10 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
 import json
 
-from backend.app.main import app # FastAPI app instance
-from backend.app.models.job import ProcessingJob, JobStatus
-from backend.app.models.llm import LLMSuggestion
-from backend.app.config import settings # For OLLAMA_DEFAULT_MODEL
+from app.main import app # FastAPI app instance
+from app.models.job import ProcessingJob, JobStatus
+from app.models.llm import LLMSuggestion
+from app.config import settings # For OLLAMA_DEFAULT_MODEL
 
 # --- Test Setup & Fixtures ---
 
@@ -20,9 +20,9 @@ async def client():
 # --- Test Cases ---
 
 @pytest.mark.asyncio
-@patch("backend.app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
-@patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock) # Mock the service layer
-@patch("backend.app.db.database.SessionLocal") # Mock the DB session
+@patch("app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
+@patch("app.services.llm.generate_suggestions", new_callable=AsyncMock) # Mock the service layer
+@patch("app.db.database.SessionLocal") # Mock the DB session
 async def test_suggest_from_job_success(
     mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
 ):
@@ -75,7 +75,7 @@ async def test_suggest_from_job_success(
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_job_not_found(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -88,7 +88,7 @@ async def test_suggest_from_job_job_not_found(mock_session_local, client: AsyncC
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_job_not_transcription(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -103,7 +103,7 @@ async def test_suggest_from_job_job_not_transcription(mock_session_local, client
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_job_not_completed(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -118,8 +118,8 @@ async def test_suggest_from_job_job_not_completed(mock_session_local, client: As
 
 
 @pytest.mark.asyncio
-@patch("backend.app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_transcript, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -135,8 +135,8 @@ async def test_suggest_from_job_empty_transcript(mock_session_local, mock_read_t
 
 
 @pytest.mark.asyncio
-@patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.services.llm.generate_suggestions", new_callable=AsyncMock)
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_text_success(mock_session_local, mock_generate_suggestions, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -162,7 +162,7 @@ async def test_suggest_from_text_success(mock_session_local, mock_generate_sugge
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_get_suggestion_found(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -186,7 +186,7 @@ async def test_get_suggestion_found(mock_session_local, client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_get_suggestion_not_found(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -199,7 +199,7 @@ async def test_get_suggestion_not_found(mock_session_local, client: AsyncClient)
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_get_suggestions_by_job_found(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -237,7 +237,7 @@ async def test_get_suggestions_by_job_found(mock_session_local, client: AsyncCli
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_get_suggestions_by_job_job_not_found(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -256,7 +256,7 @@ async def test_get_suggestions_by_job_job_not_found(mock_session_local, client: 
 
 
 @pytest.mark.asyncio
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.db.database.SessionLocal")
 async def test_get_suggestions_by_job_no_suggestions(mock_session_local, client: AsyncClient):
     mock_db_instance = MagicMock()
     mock_session_local.return_value = mock_db_instance
@@ -291,9 +291,9 @@ async def test_get_suggestions_by_job_no_suggestions(mock_session_local, client:
 # If `generate_suggestions` itself raises an exception (e.g., httpx.HTTPStatusError),
 # the API routes should catch it and return a 500 or 502.
 @pytest.mark.asyncio
-@patch("backend.app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
-@patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
+@patch("app.services.llm.generate_suggestions", new_callable=AsyncMock)
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_llm_service_error(
     mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
 ):
@@ -313,9 +313,9 @@ async def test_suggest_from_job_llm_service_error(
     assert "Failed to generate LLM suggestions: LLM is down" in response.json()["detail"]
 
 @pytest.mark.asyncio
-@patch("backend.app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
-@patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.api.routes_llm.read_transcript_from_job", new_callable=AsyncMock)
+@patch("app.services.llm.generate_suggestions", new_callable=AsyncMock)
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_job_llm_returns_error_structure(
     mock_session_local, mock_generate_suggestions, mock_read_transcript, client: AsyncClient
 ):
@@ -361,8 +361,8 @@ async def test_suggest_from_job_llm_returns_error_structure(
 # Test `suggest_from_text` updated to send JSON:
 
 @pytest.mark.asyncio
-@patch("backend.app.services.llm.generate_suggestions", new_callable=AsyncMock)
-@patch("backend.app.db.database.SessionLocal")
+@patch("app.services.llm.generate_suggestions", new_callable=AsyncMock)
+@patch("app.db.database.SessionLocal")
 async def test_suggest_from_text_success_json_payload(mock_session_local, mock_generate_suggestions, client: AsyncClient):
     # This test assumes the endpoint /api/llm/suggest/from_text expects a JSON body
     # like {"transcript_text": "...", "prompt_type": "..."}

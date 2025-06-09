@@ -3,3 +3,4 @@
 * `architecture.drawio` – Top-level system context diagram (to be added)
 * `api.md`             – REST contract reference (Auto-generated with `fastapi-codegen`)
 * `adr/`               – Architecture Decision Records following MADR template
+* `Neon_instructions.md` – Connecting to the managed PostgreSQL database

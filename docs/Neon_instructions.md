@@ -17,6 +17,8 @@ This project relies on a PostgreSQL database. Neon provides a managed Postgres s
 2. Add the connection string:
    ```
    DATABASE_URL=postgresql://<user>:<password>@<hostname>/dbname?sslmode=require
+   # Enable SQLAlchemy debug logging if you need to troubleshoot DB issues
+   DB_ECHO=1
    ```
 3. Run your application (or `netlify dev` if testing via Netlify CLI) and it will connect to Neon using this variable.
 
