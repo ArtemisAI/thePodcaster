@@ -214,4 +214,3 @@ def test_upload_main_track_no_filename(mock_save_file):
     assert "main track file is invalid (no filename)" in data["detail"].lower()
     mock_save_file.assert_not_called()
 
-```

@@ -1,0 +1,5 @@
+Implemented video generation and media library API routes.
+- Added `generate_waveform_video` function using ffmpeg.
+- New routers `/api/video` and `/api/library` wired into the app.
+- Updated TODO to mark upstream routes resolved.
+
