@@ -1,0 +1,4 @@
+- Enabled n8n container in `docker-compose.yml` with basic auth variables.
+- Added `N8N_WEBHOOK_URL` and `N8N_API_KEY` config options and `.env.example` entries.
+- Updated README with n8n setup notes and UI link.
+- Marked roadmap item F1 as implemented.

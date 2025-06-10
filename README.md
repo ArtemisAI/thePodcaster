@@ -97,6 +97,9 @@ Follow these steps to set up and run The Podcaster locally.
    ```bash
    docker exec -it podcaster-ollama ollama pull llama2:7b-chat
    ```
+4. (Optional) Adjust n8n credentials and webhook URL in `.env` if you plan to
+   use the automated publishing features. The service is started automatically
+   by `docker compose`.
 
 ### Important: Data Directory Permissions
 
@@ -135,6 +138,7 @@ docker compose down
 - ReDoc: http://localhost:8000/api/redoc
 - Health check: http://localhost:8000/api/health
 - File Browser: http://localhost:8090
+- n8n Workflow UI: http://localhost:5678 (protected by basic auth)
 
 ### Web Interface Usage
 

@@ -93,22 +93,22 @@ services:
  #      - ollama_models:/root/.ollama
 
   # ---------------------------------------------------------------------------
-  # n8n – workflow automation (optional, comment until Milestone 6)
+  # n8n – workflow automation
   # ---------------------------------------------------------------------------
- #  n8n:
- #    image: n8nio/n8n:latest
- #    container_name: podcaster-n8n
- #    restart: unless-stopped
- #    ports:
- #      - "5678:5678"
- #    environment:
- #      - N8N_BASIC_AUTH_ACTIVE=true   # <-- Change credentials in .env
- #      - N8N_BASIC_AUTH_USER=admin
- #      - N8N_BASIC_AUTH_PASSWORD=admin
- #    volumes:
- #      - n8n_data:/home/node/.n8n
- #    depends_on:
- #      - db
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: podcaster-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - db
 
   # ---------------------------------------------------------------------------
   # Front-end – placeholder Nginx serving AudioMass static build

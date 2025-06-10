@@ -70,7 +70,7 @@ Deliverable: MP4/WEBM video ready for YouTube.
 
 | ID | Task | Est. | Notes |
 |----|------|------|-------|
-|F1|Add n8n container to Compose|0.25d|
+|F1|Add n8n container to Compose|0.25d|Implemented. Service enabled in docker-compose with basic auth variables.|
 |F2|Provide sample YouTube upload workflow|0.5d|Secrets via `.env`|
 |F3|Trigger n8n via webhook when processing completes|0.5d|
 

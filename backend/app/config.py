@@ -36,6 +36,8 @@ class Settings:
     CELERY_RESULT_BACKEND: str = os.getenv('CELERY_RESULT_BACKEND') or 'redis://broker:6379/0'
     OLLAMA_URL: str = os.getenv('OLLAMA_URL') or ''
     OLLAMA_DEFAULT_MODEL: str = os.getenv('OLLAMA_DEFAULT_MODEL') or ''
+    N8N_WEBHOOK_URL: str = os.getenv('N8N_WEBHOOK_URL') or ''
+    N8N_API_KEY: str = os.getenv('N8N_API_KEY') or ''
     FRONTEND_PORT: int = int(os.getenv('FRONTEND_PORT') or '80')
     DB_ECHO: bool = (os.getenv('DB_ECHO') or 'false').lower() in ('1', 'true', 'yes')
 
