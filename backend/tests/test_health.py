@@ -1,3 +1,16 @@
-"""Very first test – verifies the health endpoint works once implemented."""
+"""Basic health check test for the API."""
 
-# TODO: write pytest fixture for test client and assert 200
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_health_endpoint() -> None:
+    """The ``/api/health`` route should return ``{"status": "ok"}``."""
+
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

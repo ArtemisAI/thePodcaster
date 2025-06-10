@@ -13,7 +13,7 @@ The application is designed to be simple, responsive, and user-friendly.
 ## Current Features
 
 *   **Audio Upload:** Allows users to select a main audio file, and optional intro/outro files.
-*   **Client-Side Validation:** Validates files before upload based on type (MP3, WAV) and size (max 25MB per file).
+*   **Client-Side Validation:** Validates files before upload based on type (MP3, WAV). The allowed size is controlled by the backend via the ``MAX_UPLOAD_SIZE_MB`` environment variable (default: 500MB).
 *   **Job Status View:** A dedicated view to display the status of processing jobs. (Note: Data is currently mocked and requires a backend to show real-time job statuses).
 *   **Media Library View:** A view to browse and download processed media. (Note: Data is currently mocked and requires a backend).
 *   **Responsive Design:** The user interface adapts to different screen sizes (mobile, tablet, desktop).

@@ -25,4 +25,5 @@ class AudioFile(Base):
     uploaded_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, comment="Timestamp of when the file was uploaded.")
 
 
-# TODO: create SQLModel class `ProcessingJob`
+# See :mod:`app.models.job` for the ``ProcessingJob`` model used to
+# track background processing tasks.
