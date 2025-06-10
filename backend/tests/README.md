@@ -94,3 +94,13 @@ DELETE /api/outputs/{filename}
 # Replace {filename} with an actual filename from the outputs directory.
 curl -X DELETE http://localhost:8000/api/outputs/your_output_file.txt
 # Expected response: 204 No Content on success.
+
+## Job Management
+
+### 1. List All Jobs
+GET /api/jobs
+curl -X GET http://localhost:8000/api/jobs
+
+### 2. Get Job Details
+GET /api/jobs/{job_id}
+curl -X GET http://localhost:8000/api/jobs/123

@@ -296,27 +296,17 @@ const App = {
         
         this.showSpinner(this.elements.jobsList, true); // true to clear previous items before loading
 
-        // MOCK DATA for now
-        const mockJobs = [
-            { id: 'job_123', status: 'COMPLETED', type: 'audio_processing', output_file_path: 'processed_audio_123.mp3', created_at: new Date().toISOString() },
-            { id: 'job_456', status: 'PROCESSING', type: 'audio_processing', output_file_path: null, created_at: new Date().toISOString() },
-            { id: 'job_789', status: 'FAILED', type: 'audio_processing', error_message: 'Something went wrong.', created_at: new Date().toISOString() }
-        ];
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-
         try {
-            // const jobIdToFetch = this.elements.jobIdInput ? this.elements.jobIdInput.value.trim() : '';
-            // let endpoint = `${this.API_BASE_URL}/jobs`; // Adjust to your actual combined endpoint
-            // if (jobIdToFetch) {
-            //     endpoint = `${this.API_BASE_URL}/jobs/${jobIdToFetch}`;
-            // }
-            // const response = await fetch(endpoint);
-            // if (!response.ok) throw new Error(`Failed to fetch jobs: ${response.statusText}`);
-            // const jobs = await response.json();
-            
-            const jobs = mockJobs; // Using mock data
+            const jobIdToFetch = this.elements.jobIdInput ? this.elements.jobIdInput.value.trim() : '';
+            let endpoint = `${this.API_BASE_URL}/jobs`;
+            if (jobIdToFetch) {
+                endpoint = `${endpoint}/${jobIdToFetch}`;
+            }
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || response.statusText);
+
+            const jobs = Array.isArray(data) ? data : [data];
 
             this.hideSpinner(this.elements.jobsList);
             if (!jobs || jobs.length === 0) {
@@ -485,109 +475,6 @@ const App = {
         } catch (error) {
             console.error('Error starting visualization:', error);
             this.displayMessage(this.elements.vizResponseDiv, `Error: ${error.message}`, 'error');
-        }
-    },
-        if (!this.elements.libraryList) return;
-        const libraryListStatus = document.getElementById('libraryListStatus');
-        if (libraryListStatus) libraryListStatus.textContent = 'Loading library items...';
-
-        this.showSpinner(this.elements.libraryList, true); // true to clear
-
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/library`);
-            const items = await response.json();
-            if (!response.ok) throw new Error(items.detail || response.statusText);
-
-            this.hideSpinner(this.elements.libraryList);
-            if (!items || items.length === 0) {
-                this.elements.libraryList.innerHTML = '<li>No media found in the library.</li>';
-                if (libraryListStatus) libraryListStatus.textContent = 'No media found in the library.';
-                return;
-            }
-
-            this.elements.libraryList.innerHTML = ''; // Clear spinner
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.setAttribute('role', 'listitem');
-
-                const idSpan = document.createElement('span');
-                idSpan.className = 'lib-field lib-id';
-                idSpan.innerHTML = `<strong>ID:</strong> ${item.job_id}`;
-
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'lib-field lib-type';
-                typeSpan.innerHTML = `<strong>Type:</strong> ${item.job_type}`;
-
-                const pathSpan = document.createElement('span');
-                pathSpan.className = 'lib-field lib-path';
-                pathSpan.innerHTML = `<strong>Path:</strong> ${item.output_file_path}`;
-
-                const actionsSpan = document.createElement('span');
-                actionsSpan.className = 'lib-field lib-actions';
-                const downloadLink = document.createElement('a');
-                downloadLink.href = item.download_url;
-                downloadLink.target = '_blank';
-                downloadLink.textContent = 'Download';
-                actionsSpan.innerHTML = `<strong>Actions:</strong> `;
-                actionsSpan.appendChild(downloadLink);
-
-                li.appendChild(idSpan);
-                li.appendChild(typeSpan);
-                li.appendChild(pathSpan);
-                li.appendChild(actionsSpan);
-                this.elements.libraryList.appendChild(li);
-            });
-
-            this.hideSpinner(this.elements.libraryList);
-            if (!items || items.length === 0) {
-                this.elements.libraryList.innerHTML = '<li>No media found in the library.</li>';
-                if (libraryListStatus) libraryListStatus.textContent = 'No media found in the library.';
-                return;
-            }
-
-            this.elements.libraryList.innerHTML = ''; // Clear spinner
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.setAttribute('role', 'listitem');
-                li.setAttribute('aria-labelledby', `lib-item-name-${item.id}`);
-
-                const nameSpan = document.createElement('span');
-                nameSpan.id = `lib-item-name-${item.id}`;
-                nameSpan.className = 'lib-field lib-name';
-                nameSpan.innerHTML = `<strong>Name:</strong> ${item.name}`;
-
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'lib-field lib-type';
-                typeSpan.innerHTML = `<strong>Type:</strong> ${item.type} <span class="tooltip-trigger" data-tooltip="Original Job ID: ${item.original_job_id}" aria-label="Original job ID details"><span aria-hidden="true">&#❓</span></span>`;
-                
-                const createdSpan = document.createElement('span');
-                createdSpan.className = 'lib-field lib-created';
-                createdSpan.innerHTML = `<strong>Created:</strong> ${new Date(item.created_at).toLocaleString()}`;
-
-                const actionsSpan = document.createElement('span');
-                actionsSpan.className = 'lib-field lib-actions';
-                const downloadLink = document.createElement('a');
-                downloadLink.href = item.download_url;
-                downloadLink.target = '_blank';
-                downloadLink.textContent = 'Download';
-                downloadLink.setAttribute('aria-label', `Download ${item.name}`);
-                actionsSpan.innerHTML = `<strong>Actions:</strong> `;
-                actionsSpan.appendChild(downloadLink);
-
-                li.appendChild(nameSpan);
-                li.appendChild(typeSpan);
-                li.appendChild(createdSpan);
-                li.appendChild(actionsSpan);
-                
-                this.elements.libraryList.appendChild(li);
-            });
-            if (libraryListStatus) libraryListStatus.textContent = `Library list updated. ${items.length} items shown.`;
-
-        } catch (error) {
-            console.error('Error fetching library:', error);
-            this.hideSpinner(this.elements.libraryList);
-            this.elements.libraryList.innerHTML = `<li>Error fetching library: ${error.message}</li>`;
-            if (libraryListStatus) libraryListStatus.textContent = `Error fetching library items.`;
         }
     },
 

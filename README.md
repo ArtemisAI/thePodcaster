@@ -148,6 +148,20 @@ docker compose down
 
 For detailed API testing examples using `curl`, please refer to the [API Endpoint Testing Guide](./backend/tests/README.md).
 
+### Running Tests
+
+To run the Python unit tests locally, first install the backend dependencies:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+Then execute the full suite with:
+
+```bash
+pytest -q
+```
+
 ---
 
 ## Database Backups
